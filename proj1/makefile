@@ -18,7 +18,7 @@ default: all
 	$(CC) ${CFLAGS} ${SRCS} -o chatclient $(LDFLAGS)
 
 test: chatclient.c
-	${CC} ${CFLAGS} -g -v chatclient.c -o test $(LDFLAGS)
+	${CC} -g -v chatclient.c -o test 
 
 clean:
 	${RM} -rf chatclient test  *.o 

@@ -12,9 +12,12 @@ serverSocket = socket(AF_INET,SOCK_STREAM)
 serverSocket.bind(('localhost',port))
 serverSocket.listen(1)
 
+connectionSocket, addr = serverSocket.accept()
+message = connectionSocket.recv(MESSAGE_BUFFER)
+print message
+
 print "The server is ready to receive"
 while 1:
-	connectionSocket, addr = serverSocket.accept()
 	message = connectionSocket.recv(MESSAGE_BUFFER)
 	print message
 
