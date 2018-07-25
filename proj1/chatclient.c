@@ -10,7 +10,7 @@ void error(const char*);
 void getUsername(char* );
 
 int main(int argc, char *argv[]){
-	int socketFD, portNumber, clientPortNumber;
+	int socketFD, portNumber;
 	struct sockaddr_in serverAddress;
 	struct hostent* serverHostInfo;
 	char message[501];
@@ -38,15 +38,21 @@ int main(int argc, char *argv[]){
 
 	getUsername(buffer);
 	strcpy(userName, buffer);
-	clientPortNumber = portNumber + 1;
-	sprintf(buffer, "%s>%d",userName,clientPortNumber);
+//	clientPortNumber = portNumber + 1;
+//	sprintf(buffer, "%s> %d",userName,clientPortNumber);
 	send(socketFD, buffer, strlen(buffer), 0);
 	
 	while(1){
 		printf("%s> ", userName);
 		memset(buffer, 0, 1024);
 		fgets(buffer, 1023, stdin);
+		if(buffer[strlen(buffer)-1] == '\n')//Strip new line from fgets
+			buffer[strlen(buffer)-1] = '\0';
 		send(socketFD, buffer, strlen(buffer), 0);
+		memset(buffer, 0, 1024);
+		printf("hostA> ");
+		recv(socketFD, buffer, 500 , 0);
+		printf( "%s\n", buffer);
 
 	}
 
