@@ -5,11 +5,12 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-
 void error(const char*);
 void getUsername(char* );
 int sendMsg(int, char*);
 int receiveMsg(int);
+int _sendAll(int, char*, int);
+int _recvAll(int, char*, int);
 
 int main(int argc, char *argv[]){
 	int socketFD, portNumber;
@@ -76,10 +77,53 @@ int sendMsg(int socket, char* userName){
 		return 1;
 }
 
+/* Function: sendAll
+* --------------------
+*  Helper function Sends all data in buf
+*
+* n: socket file descriptor, buffer to send, length of buffer
+*
+* Returns: number of characters sent
+*/
+int _sendAll(int s, char *buf, int len)
+{
+	int bytesleft = len;
+	int sent = 0;
+	while (sent < len) {
+		//if (TEST) {printf("%d bytes sent of %d.\n", sent, len);}
+		int	n = send(s, buf + sent, bytesleft, 0);
+		if (n == -1) {error("Failed to send data"); return -1;}
+		sent += n;
+		bytesleft -= n;
+	}
+	return sent;
+}
+
 int receiveMsg(int socket){
 		char buffer[501];
 		memset(buffer, 0, 501);
 		recv(socket, buffer, 500 , 0);
 		printf( "%s\n", buffer);
 		return 1;
+}
+/* Function: recvAll
+* --------------------
+*  Helper function receives all data in buffer
+*
+* n: socket file descriptor, buffer to receive, length of buffer
+*
+* Returns: number of characters received
+*/
+int _recvAll(int s, char *buf, int len)
+{
+//	char *ptr = (char*) buf;
+	int bytesleft = len;
+	int rec = 0;
+	while (rec < len) {
+		//if (TEST) {printf("%d bytes received of %d.\n", rec, len);}
+		int n = recv(s, buf + rec, bytesleft , 0);
+		rec += n;
+		bytesleft -= n;
+	}
+	return rec;
 }
