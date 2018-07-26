@@ -15,14 +15,12 @@ serverSocket.listen(1)
 print("Waiting for connection...") 
 connectionSocket, addr = serverSocket.accept()
 message = connectionSocket.recv(MESSAGE_BUFFER)
-clientUsername = message+ "> "
-print("Connection established.")
+print("Connection established with " + message +".")
+
 while 1:
-	sys.stdout.write(clientUsername)
-	sys.stdout.flush()
 	message = connectionSocket.recv(MESSAGE_BUFFER)
 	print(message)
 	print("Host A>"), 
 	hostInput = raw_input()
-	connectionSocket.send(hostInput)
+	connectionSocket.send("HostA> " + hostInput)
 

@@ -8,16 +8,15 @@
 
 void error(const char*);
 void getUsername(char* );
+int sendMsg(int, char*);
+int receiveMsg(int);
 
 int main(int argc, char *argv[]){
 	int socketFD, portNumber;
+	int check = 1;
 	struct sockaddr_in serverAddress;
 	struct hostent* serverHostInfo;
-	char message[501];
 	char userName[11];
-	char buffer[1024];  
-
-
 
 	if(argc < 2){printf("Not enough arguements. Exit."); exit(0);}
 
@@ -36,43 +35,51 @@ int main(int argc, char *argv[]){
 	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to address
 		error("CLIENT: ERROR connecting");
 
-	getUsername(buffer);
-	strcpy(userName, buffer);
-//	clientPortNumber = portNumber + 1;
-//	sprintf(buffer, "%s> %d",userName,clientPortNumber);
-	send(socketFD, buffer, strlen(buffer), 0);
+	getUsername(userName);
+	send(socketFD, userName, strlen(userName), 0);
 	
-	while(1){
-		printf("%s> ", userName);
-		memset(buffer, 0, 1024);
-		fgets(buffer, 1023, stdin);
-		if(buffer[strlen(buffer)-1] == '\n')//Strip new line from fgets
-			buffer[strlen(buffer)-1] = '\0';
-		send(socketFD, buffer, strlen(buffer), 0);
-		memset(buffer, 0, 1024);
-		printf("hostA> ");
-		recv(socketFD, buffer, 500 , 0);
-		printf( "%s\n", buffer);
-
+	while(check >= 1){
+		check = sendMsg(socketFD, userName);
+		check = receiveMsg(socketFD);
 	}
-
 }
 
 void error(const char *msg) { 
 	perror(msg); exit(1); 
 } // Error function used for reporting issues
 
-
 void getUsername(char* rtnName){
-	memset(rtnName, 0, 1024);
+	char buffer[500];
+	memset(buffer, 0, 500);
 	printf("Enter user name: ");
-	fgets(rtnName, 1023, stdin);
-    while(strlen(rtnName) > 10 || strlen(rtnName) <= 0){
+	fgets(buffer, 500, stdin);
+    while(strlen(buffer) > 10 || strlen(buffer) <= 0){
     	printf("Enter user name(up to 10 characters): ");
-	    fgets(rtnName, 1023, stdin);
+	    fgets(buffer, 500, stdin);
     }
+	strcpy(rtnName,buffer);
 	if(rtnName[strlen(rtnName)-1] == '\n')//Strip new line from fgets
 		rtnName[strlen(rtnName)-1] = '\0';
-
     return; 
+}
+
+int sendMsg(int socket, char* userName){
+
+		printf("%s> ", userName);
+		char buffer[500];
+		char sendBuffer[500 + strlen(userName)];
+		fgets(buffer, 501, stdin);
+		sprintf(sendBuffer,"%s> %s", userName, buffer );
+		if(sendBuffer[strlen(sendBuffer)-1] == '\n')//Strip new line from fgets
+			sendBuffer[strlen(sendBuffer)-1] = '\0';
+		send(socket, sendBuffer, strlen(sendBuffer), 0);
+		return 1;
+}
+
+int receiveMsg(int socket){
+		char buffer[501];
+		memset(buffer, 0, 501);
+		recv(socket, buffer, 500 , 0);
+		printf( "%s\n", buffer);
+		return 1;
 }
