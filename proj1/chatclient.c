@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <unistd.h>
 
 void error(const char*);
 void getUsername(char* );
@@ -39,10 +40,14 @@ int main(int argc, char *argv[]){
 	getUsername(userName);
 	send(socketFD, userName, strlen(userName), 0);
 	
-	while(check >= 1){
+	while(check > 0){
 		check = sendMsg(socketFD, userName);
-		check = receiveMsg(socketFD);
+		if(check > 0)
+			check = receiveMsg(socketFD);
 	}
+	close(socketFD);
+	printf("Socket Closed...Goodbye.\n");
+	return 0;
 }
 
 void error(const char *msg) { 
@@ -65,15 +70,19 @@ void getUsername(char* rtnName){
 }
 
 int sendMsg(int socket, char* userName){
-
+		char* quitCode = "quit42";
 		printf("%s> ", userName);
 		char buffer[500];
 		char sendBuffer[500 + strlen(userName)];
 		fgets(buffer, 501, stdin);
+		if(strcmp(buffer, "\\quit\n") == 0){
+			_sendAll(socket, quitCode ,strlen(quitCode));
+			return 0;
+		}
 		sprintf(sendBuffer,"%s> %s", userName, buffer );
 		if(sendBuffer[strlen(sendBuffer)-1] == '\n')//Strip new line from fgets
 			sendBuffer[strlen(sendBuffer)-1] = '\0';
-		send(socket, sendBuffer, strlen(sendBuffer), 0);
+		_sendAll(socket, sendBuffer, strlen(sendBuffer));	
 		return 1;
 }
 
@@ -103,6 +112,9 @@ int receiveMsg(int socket){
 		char buffer[501];
 		memset(buffer, 0, 501);
 		recv(socket, buffer, 500 , 0);
+		if(strcmp(buffer, "quit43") == 0){
+			return 0;
+		}
 		printf( "%s\n", buffer);
 		return 1;
 }
