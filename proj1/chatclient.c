@@ -1,3 +1,13 @@
+/*
+ * CS 372 Intro. to Computer Networks
+ * Project 1
+ * Name: Jacob Powers
+ * Date: 07/29/18
+ * Description: This is the client application for a chat application.
+ * The server is started with the chatserve.py with a port number, you can then
+ * run this program.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,6 +16,7 @@
 #include <netdb.h>
 #include <unistd.h>
 
+void firstContact(int, char*);
 void error(const char*);
 void getUsername(char* );
 int sendMsg(int, char*);
@@ -13,14 +24,14 @@ int receiveMsg(int);
 int _sendAll(int, char*, int);
 int _recvAll(int, char*, int);
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[]) {
 	int socketFD, portNumber;
 	int check = 1;
 	struct sockaddr_in serverAddress;
 	struct hostent* serverHostInfo;
 	char userName[11];
 
-	if(argc < 2){printf("Not enough arguements. Exit."); exit(0);}
+	if (argc < 2) {printf("Not enough arguements. Exit."); exit(0);}
 
 	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
 	portNumber = atoi(argv[2]); // Get the port number, convert to an integer from a string
@@ -37,12 +48,13 @@ int main(int argc, char *argv[]){
 	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to address
 		error("CLIENT: ERROR connecting");
 
-	getUsername(userName);
-	send(socketFD, userName, strlen(userName), 0);
-	
-	while(check > 0){
+//	getUsername(userName);
+//	send(socketFD, userName, strlen(userName), 0);
+	check = firstContact(socketFD,userName);
+
+	while (check > 0) {
 		check = sendMsg(socketFD, userName);
-		if(check > 0)
+		if (check > 0)
 			check = receiveMsg(socketFD);
 	}
 	close(socketFD);
@@ -50,40 +62,46 @@ int main(int argc, char *argv[]){
 	return 0;
 }
 
-void error(const char *msg) { 
-	perror(msg); exit(1); 
+void firstContact(int socket, char* userName){
+	getUsername(userName);
+	send(socket, userName, strlen(userName), 0);
+	return; 
+}
+
+void error(const char *msg) {
+	perror(msg); exit(1);
 } // Error function used for reporting issues
 
-void getUsername(char* rtnName){
+void getUsername(char* rtnName) {
 	char buffer[500];
 	memset(buffer, 0, 500);
 	printf("Enter user name: ");
 	fgets(buffer, 500, stdin);
-    while(strlen(buffer) > 10 || strlen(buffer) <= 0){
-    	printf("Enter user name(up to 10 characters): ");
-	    fgets(buffer, 500, stdin);
-    }
-	strcpy(rtnName,buffer);
-	if(rtnName[strlen(rtnName)-1] == '\n')//Strip new line from fgets
-		rtnName[strlen(rtnName)-1] = '\0';
-    return; 
+	while (strlen(buffer) > 10 || strlen(buffer) <= 0) {
+		printf("Enter user name(up to 10 characters): ");
+		fgets(buffer, 500, stdin);
+	}
+	strcpy(rtnName, buffer);
+	if (rtnName[strlen(rtnName) - 1] == '\n') //Strip new line from fgets
+		rtnName[strlen(rtnName) - 1] = '\0';
+	return;
 }
 
-int sendMsg(int socket, char* userName){
-		char* quitCode = "quit42";
-		printf("%s> ", userName);
-		char buffer[500];
-		char sendBuffer[500 + strlen(userName)];
-		fgets(buffer, 501, stdin);
-		if(strcmp(buffer, "\\quit\n") == 0){
-			_sendAll(socket, quitCode ,strlen(quitCode));
-			return 0;
-		}
-		sprintf(sendBuffer,"%s> %s", userName, buffer );
-		if(sendBuffer[strlen(sendBuffer)-1] == '\n')//Strip new line from fgets
-			sendBuffer[strlen(sendBuffer)-1] = '\0';
-		_sendAll(socket, sendBuffer, strlen(sendBuffer));	
-		return 1;
+int sendMsg(int socket, char* userName) {
+	char* quitCode = "quit42";
+	printf("%s> ", userName);
+	char buffer[500];
+	char sendBuffer[500 + strlen(userName)];
+	fgets(buffer, 501, stdin);
+	if (strcmp(buffer, "\\quit\n") == 0) {
+		_sendAll(socket, quitCode , strlen(quitCode));
+		return 0;
+	}
+	sprintf(sendBuffer, "%s> %s", userName, buffer );
+	if (sendBuffer[strlen(sendBuffer) - 1] == '\n') //Strip new line from fgets
+		sendBuffer[strlen(sendBuffer) - 1] = '\0';
+	_sendAll(socket, sendBuffer, strlen(sendBuffer));
+	return 1;
 }
 
 /* Function: sendAll
@@ -108,15 +126,15 @@ int _sendAll(int s, char *buf, int len)
 	return sent;
 }
 
-int receiveMsg(int socket){
-		char buffer[501];
-		memset(buffer, 0, 501);
-		recv(socket, buffer, 500 , 0);
-		if(strcmp(buffer, "quit43") == 0){
-			return 0;
-		}
-		printf( "%s\n", buffer);
-		return 1;
+int receiveMsg(int socket) {
+	char buffer[501];
+	memset(buffer, 0, 501);
+	recv(socket, buffer, 500 , 0);
+	if (strcmp(buffer, "quit43") == 0) {
+		return 0;
+	}
+	printf( "%s\n", buffer);
+	return 1;
 }
 /* Function: recvAll
 * --------------------

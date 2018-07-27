@@ -31,6 +31,6 @@ while 1:
 			connectionSocket.send("quit43")
 			connectionSocket
 			connectionSocket.close()
-			sys.exit(0)
-		connectionSocket.send("HostA> " + hostInput)
+			break
 
+		connectionSocket.send("HostA> " + hostInput)
