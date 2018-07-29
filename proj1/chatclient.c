@@ -22,7 +22,7 @@ void getUsername(char* );
 int sendMsg(int, char*);
 int receiveMsg(int);
 int _sendAll(int, char*, int);
-int _recvAll(int, char*, int);
+void nullTermStr(char*);
 
 int main(int argc, char *argv[]) {
 	int socketFD, portNumber;
@@ -47,10 +47,8 @@ int main(int argc, char *argv[]) {
 
 	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to address
 		error("CLIENT: ERROR connecting");
-
-//	getUsername(userName);
-//	send(socketFD, userName, strlen(userName), 0);
-	check = firstContact(socketFD,userName);
+	
+	firstContact(socketFD,userName);
 
 	while (check > 0) {
 		check = sendMsg(socketFD, userName);
@@ -62,16 +60,25 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
+/*Collects username and sends first connection to server*/
 void firstContact(int socket, char* userName){
 	getUsername(userName);
 	send(socket, userName, strlen(userName), 0);
 	return; 
 }
 
+// Error function used for reporting issues
 void error(const char *msg) {
 	perror(msg); exit(1);
-} // Error function used for reporting issues
-
+}
+/* Function: getUsername 
+* --------------------
+* Gets username from user, check for <10 characters, strip \n  
+*
+* n: return pointer for user name string 
+*
+* Returns: String passed as reference   
+*/
 void getUsername(char* rtnName) {
 	char buffer[500];
 	memset(buffer, 0, 500);
@@ -82,11 +89,18 @@ void getUsername(char* rtnName) {
 		fgets(buffer, 500, stdin);
 	}
 	strcpy(rtnName, buffer);
-	if (rtnName[strlen(rtnName) - 1] == '\n') //Strip new line from fgets
-		rtnName[strlen(rtnName) - 1] = '\0';
+	nullTermStr(rtnName);
 	return;
 }
-
+/* Function: sendMsg
+* --------------------
+* Gets user input, append handle, call nullTermStr() and send using
+* _sendAll(). If user types \quit the connection is closed.
+*
+* n: socket file descriptor, buffer to send, length of buffer
+*
+* Returns: 1 on continue or 0 for quit 
+*/
 int sendMsg(int socket, char* userName) {
 	char* quitCode = "quit42";
 	printf("%s> ", userName);
@@ -98,13 +112,12 @@ int sendMsg(int socket, char* userName) {
 		return 0;
 	}
 	sprintf(sendBuffer, "%s> %s", userName, buffer );
-	if (sendBuffer[strlen(sendBuffer) - 1] == '\n') //Strip new line from fgets
-		sendBuffer[strlen(sendBuffer) - 1] = '\0';
+	nullTermStr(sendBuffer);
 	_sendAll(socket, sendBuffer, strlen(sendBuffer));
 	return 1;
 }
 
-/* Function: sendAll
+/* Function: _sendAll
 * --------------------
 *  Helper function Sends all data in buf
 *
@@ -125,35 +138,34 @@ int _sendAll(int s, char *buf, int len)
 	}
 	return sent;
 }
+/* Function: receiveMsg 
+* --------------------
+* Receives a message from the server and prints to console. 
+*
+* n: the socket number 
+*
+* Returns: Returns 1 on continue and returns 0 for exit and close 
+*/
 
 int receiveMsg(int socket) {
 	char buffer[501];
 	memset(buffer, 0, 501);
-	recv(socket, buffer, 500 , 0);
+	recv(socket, buffer, 500 , 0);// Receive size of next message from server
 	if (strcmp(buffer, "quit43") == 0) {
 		return 0;
 	}
 	printf( "%s\n", buffer);
 	return 1;
 }
-/* Function: recvAll
+/* Function: nullTermStr 
 * --------------------
-*  Helper function receives all data in buffer
+* The string to remove the \n. 
 *
-* n: socket file descriptor, buffer to receive, length of buffer
+* n: A string passed as pointer
 *
-* Returns: number of characters received
+* Returns: void but null terminated string is passed
 */
-int _recvAll(int s, char *buf, int len)
-{
-//	char *ptr = (char*) buf;
-	int bytesleft = len;
-	int rec = 0;
-	while (rec < len) {
-		//if (TEST) {printf("%d bytes received of %d.\n", rec, len);}
-		int n = recv(s, buf + rec, bytesleft , 0);
-		rec += n;
-		bytesleft -= n;
-	}
-	return rec;
+void nullTermStr(char* str){
+	if (str[strlen(str) - 1] == '\n') //Strip new line from fgets
+		str[strlen(str) - 1] = '\0';
 }
