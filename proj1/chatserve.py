@@ -31,7 +31,7 @@ MESSAGE_BUFFER = 1024
 port = int(sys.argv[1])
 handle = "Host A> "
 serverSocket = socket(AF_INET,SOCK_STREAM)
-serverSocket.bind(('localhost',port))
+serverSocket.bind(('',port))
 serverSocket.listen(1)
 
 while 1:
