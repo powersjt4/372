@@ -47,8 +47,8 @@ int main(int argc, char *argv[]) {
 
 	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to address
 		error("CLIENT: ERROR connecting");
-	
-	firstContact(socketFD,userName);
+
+	firstContact(socketFD, userName);
 
 	while (check > 0) {
 		check = sendMsg(socketFD, userName);
@@ -60,24 +60,24 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-/*Collects username and sends first connection to server*/
-void firstContact(int socket, char* userName){
+/*Collects user name and sends first connection to server*/
+void firstContact(int socket, char* userName) {
 	getUsername(userName);
 	send(socket, userName, strlen(userName), 0);
-	return; 
+	return;
 }
 
 // Error function used for reporting issues
 void error(const char *msg) {
 	perror(msg); exit(1);
 }
-/* Function: getUsername 
+/* Function: getUsername
 * --------------------
-* Gets username from user, check for <10 characters, strip \n  
+* Gets user name from user, check for <10 characters, strip \n
 *
-* n: return pointer for user name string 
+* n: return pointer for user name string
 *
-* Returns: String passed as reference   
+* Returns: String passed as reference
 */
 void getUsername(char* rtnName) {
 	char buffer[500];
@@ -99,7 +99,7 @@ void getUsername(char* rtnName) {
 *
 * n: socket file descriptor, buffer to send, length of buffer
 *
-* Returns: 1 on continue or 0 for quit 
+* Returns: 1 on continue or 0 for quit
 */
 int sendMsg(int socket, char* userName) {
 	char* quitCode = "quit42";
@@ -138,13 +138,13 @@ int _sendAll(int s, char *buf, int len)
 	}
 	return sent;
 }
-/* Function: receiveMsg 
+/* Function: receiveMsg
 * --------------------
-* Receives a message from the server and prints to console. 
+* Receives a message from the server and prints to console.
 *
-* n: the socket number 
+* n: the socket number
 *
-* Returns: Returns 1 on continue and returns 0 for exit and close 
+* Returns: Returns 1 on continue and returns 0 for exit and close
 */
 
 int receiveMsg(int socket) {
@@ -157,15 +157,15 @@ int receiveMsg(int socket) {
 	printf( "%s\n", buffer);
 	return 1;
 }
-/* Function: nullTermStr 
+/* Function: nullTermStr
 * --------------------
-* The string to remove the \n. 
+* The string to remove the \n.
 *
 * n: A string passed as pointer
 *
 * Returns: void but null terminated string is passed
 */
-void nullTermStr(char* str){
+void nullTermStr(char* str) {
 	if (str[strlen(str) - 1] == '\n') //Strip new line from fgets
 		str[strlen(str) - 1] = '\0';
 }

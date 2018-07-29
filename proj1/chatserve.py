@@ -1,10 +1,31 @@
 from socket import *
 import sys
 
+def sendMsg(connectionSocket):
+	print("Host A>"), 
+	hostInput = raw_input()
+	if (hostInput == "\quit"):
+		connectionSocket.send("quit43")
+		connectionSocket.close()
+		return False
+	connectionSocket.send("HostA> " + hostInput)
+	return True
+
+def receiveMsg(connectionSocket):
+	message = connectionSocket.recv(MESSAGE_BUFFER)
+	if("quit42" in message ):
+		connection = False
+		return False
+	print(message)
+	return True
+def startUp(connectionSocket):
+	message = connectionSocket.recv(MESSAGE_BUFFER)
+	print("Connection established with " + message +".")
+	return True 
+
 if len(sys.argv) < 2:
 	print("Not enough arguments. Exiting.")
 	exit();
-
 
 MESSAGE_BUFFER = 1024
 port = int(sys.argv[1])
@@ -16,21 +37,11 @@ serverSocket.listen(1)
 while 1:
 	print("Waiting for connection...") 
 	connectionSocket, addr = serverSocket.accept()
-	message = connectionSocket.recv(MESSAGE_BUFFER)
-	print("Connection established with " + message +".")
-	connection = True 
+	connection = startUp(connectionSocket)
 	while connection:
-		message = connectionSocket.recv(MESSAGE_BUFFER)
-		if("quit42" in message ):
-			connection = False
+		if not receiveMsg(connectionSocket):
+			print "Connection closed by client"
 			break
-		print(message)
+		if not sendMsg(connectionSocket):
+			break 
 
-		print("Host A>"), 
-		hostInput = raw_input()
-		if (hostInput == "\quit"):
-			connectionSocket.send("quit43")
-			connectionSocket
-			connectionSocket.close()
-			break
-		connectionSocket.send("HostA> " + hostInput)
