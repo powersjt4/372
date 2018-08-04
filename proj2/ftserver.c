@@ -16,6 +16,7 @@
 #include <netdb.h>
 #include <unistd.h>
 
+int establishConn(int, char*);
 void firstContact(int, char*);
 void error(const char*);
 void getUsername(char* );
@@ -25,73 +26,62 @@ int _sendAll(int, char*, int);
 void nullTermStr(char*);
 
 int main(int argc, char *argv[]) {
-	int socketFD, portNumber;
 	int check = 1;
+	char userName[11];
+	int pSock;
+	if (argc == 2) {printf("Not enough arguements. Exit."); exit(0);}
+	pSock = establishConn(atoi(argv[2]), argv[1]);
+	firstContact(pSock);
+
+	while (check > 0) {
+		check = sendMsg(pSock, userName);
+		if (check > 0)
+			check = receiveMsg(pSock);
+	}
+	close(pSock);
+	printf("Socket Closed...Goodbye.\n");
+	return 0;
+}
+
+int establishConn(int portNumber, char* hostName){
+	int socketFD; 
 	struct sockaddr_in serverAddress;
 	struct hostent* serverHostInfo;
-	char userName[11];
-
-	if (argc < 2) {printf("Not enough arguements. Exit."); exit(0);}
 
 	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
-	portNumber = atoi(argv[2]); // Get the port number, convert to an integer from a string
-	serverHostInfo = gethostbyname(argv[1]);
-	if (serverHostInfo == NULL) { fprintf(stderr, "CLIENT: ERROR, no such host\n"); exit(0); }
+	serverHostInfo = gethostbyname(hostName);
+	if (serverHostInfo == NULL) { fprintf(stderr, "Server: ERROR, no such host\n"); exit(0); }
 	serverAddress.sin_family = AF_INET; // Create a network-capable socket
 	serverAddress.sin_port = htons(portNumber); // Store the port number
 
 	memcpy((char*)&serverAddress.sin_addr.s_addr, (char*)serverHostInfo->h_addr, serverHostInfo->h_length); // Copy in the address
 
 	socketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
-	if (socketFD < 0) error("CLIENT: ERROR opening socket");
+	if (socketFD < 0) error("Server: ERROR opening socket");
 
 	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to address
-		error("CLIENT: ERROR connecting");
+		error("Server: ERROR connecting");
+	
+	return socketFD;
 
-	firstContact(socketFD, userName);
-
-	while (check > 0) {
-		check = sendMsg(socketFD, userName);
-		if (check > 0)
-			check = receiveMsg(socketFD);
-	}
-	close(socketFD);
-	printf("Socket Closed...Goodbye.\n");
-	return 0;
 }
-
 /*Collects user name and sends first connection to server*/
 void firstContact(int socket, char* userName) {
-	getUsername(userName);
-	send(socket, userName, strlen(userName), 0);
-	return;
+	char response;	
+	char handshake = '#';	
+	send(socket, handshake, strlen(userName), 0);
+	recv(socket, response, 1, 0);// Receive size of next message from server
+	if(response != @)
+		return -1;
+	else
+		return 1;
 }
 
 // Error function used for reporting issues
 void error(const char *msg) {
 	perror(msg); exit(1);
 }
-/* Function: getUsername
-* --------------------
-* Gets user name from user, check for <10 characters, strip \n
-*
-* n: return pointer for user name string
-*
-* Returns: String passed as reference
-*/
-void getUsername(char* rtnName) {
-	char buffer[500];
-	memset(buffer, 0, 500);
-	printf("Enter user name: ");
-	fgets(buffer, 500, stdin);
-	while (strlen(buffer) > 10 || strlen(buffer) <= 0) {
-		printf("Enter user name(up to 10 characters): ");
-		fgets(buffer, 500, stdin);
-	}
-	strcpy(rtnName, buffer);
-	nullTermStr(rtnName);
-	return;
-}
+
 /* Function: sendMsg
 * --------------------
 * Gets user input, append handle, call nullTermStr() and send using
@@ -169,3 +159,4 @@ void nullTermStr(char* str) {
 	if (str[strlen(str) - 1] == '\n') //Strip new line from fgets
 		str[strlen(str) - 1] = '\0';
 }
+

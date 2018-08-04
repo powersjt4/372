@@ -1,4 +1,3 @@
-
 # CS 372 Intro. to Computer Networks
 # Project 1
 # Name: Jacob Powers
@@ -7,7 +6,6 @@
 # The client is started with the "./chatclient {hostname} {port number}", you must
 # run this server first by running "python chatserve.py {port number}.
  
-
 from socket import *
 import sys
 

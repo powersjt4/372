@@ -8,17 +8,17 @@ CFLAGS = -std=gnu99
 CFLAGS += -Wall 
 CFLAGS += -pedantic-errors
 LDFLAGS = -lm
-OBJS = charclient.o
-SRCS = chatclient.c
+OBJS = ftserver.o
+SRCS = ftserver.c
 HEADERS = 
 
 default: all 
 
  all: 
-	$(CC) ${CFLAGS} ${SRCS} -o chatclient $(LDFLAGS)
+	$(CC) ${CFLAGS} ${SRCS} -o ftserver $(LDFLAGS)
 
-test: chatclient.c
-	${CC} -g -v chatclient.c -o test 
+test: ftserver.c
+	${CC} -g -v ftserver.c -o test 
 
 clean:
-	${RM} -rf chatclient test  *.o 
+	${RM} -rf ftserver test  *.o 
