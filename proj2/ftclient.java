@@ -1,29 +1,77 @@
 import java.util.Scanner;
- 
-public class ftclient{
+import java.net.*;
+import java.io.*;
 
-	public static int verifyArgs(String[] args){
-		String edu = "engr.oregonstate.edu";
-		System.out.println("edu " + edu + " args[0] "+ args[0]);
-//		if(args[0] != "a"|| args[0] != "flip1"+ edu || args[0] != "flip2"+ edu || args[0] != "flip3"+edu || args[0] != "localhost"){
-		if(!args[0].equals("a")){
+public class ftclient {
+
+	public static boolean verifyArgs(String[] args) {
+		String edu = ".engr.oregonstate.edu";
+		System.out.println("edu " + edu + " args[0] " + args[0]);
+		if (!("flip1" + edu).equals(args[0]) && !("flip2" + edu).equals(args[0]) && !("flip3" + edu).equals(args[0]) && !"localhost".equals(args[0]) ) {
 			System.out.println("Incorrect server host.(flip(1,2,3) or localhost");
-			return -1;
+			return false;
 		}
-		return 1;
+		try {
+			int serverPort = Integer.parseInt(args[1]);
+			int dataPort = Integer.parseInt(args[3]);
+		} catch (NumberFormatException | NullPointerException nfe) {
+			System.out.println("Incorrect port number format.");
+			return false;
+		}
+		if (!"-g".equals(args[2]) && !"-l".equals(args[2])) {
+			System.out.println("Invalid command only -l (list remote directory or -g(get <filename> from remote directory.");
+			return false;
+		}
+		return true;
 	}
 
 	public static void main(String []args) {
-		if (args.length == 6){
-			if(verifyArgs(args) < 0)
-				System.exit(0);				
-		}else{
+		Sock pSock = new Sock();
+
+		if (args.length == 6) {
+			if (!verifyArgs(args))
+				System.exit(0);
+		} else {
 			System.out.println("Not enough arguments.");
 		}
+		pSock.createSocket(Integer.parseInt(args[1]) , args[0]);
+		pSock.sendMsg("hello");
+	}
 
-		Scanner input  = new Scanner( System.in );
-	
-   }
-	
 }
 
+class Sock {
+	Socket socket;
+	PrintWriter out;
+	BufferedReader in;
+
+	void createSocket(int port, String hostname) {
+		//Create socket connection
+		try {
+			socket = new Socket(hostname, port);
+			out = new PrintWriter(socket.getOutputStream(), true);
+			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+		} catch (UnknownHostException e) {
+			System.out.println("Unknown host: " + hostname);
+			System.exit(1);
+		} catch  (IOException e) {
+			System.out.println("No I/O");
+			System.exit(1);
+		}
+	}
+
+	void sendMsg(String msg) {
+		out.println(msg);
+	}
+
+	void receiveMsg() {
+		try {
+			String line = in.readLine();
+			System.out.println("Text received: " + line);
+		} catch (IOException e) {
+			System.out.println("Read failed");
+			System.exit(1);
+		}
+	}
+}

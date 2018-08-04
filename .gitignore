@@ -2,3 +2,7 @@
 proj1/chatclient
 proj1/.chatserve.py.swp
 proj1/.chatclient.c.swp
+proj2/ftclient.class
+proj2/Sock.class
+proj2/ftclient.class
+*.class
