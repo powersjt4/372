@@ -1,6 +1,6 @@
 /*
  * CS 372 Intro. to Computer Networks
- * Project 1
+ * Project 2
  * Name: Jacob Powers
  * Date: 07/29/18
  * Description: This is the client application for a chat application.
@@ -17,24 +17,24 @@
 #include <unistd.h>
 
 int establishConn(int, char*);
-void firstContact(int, char*);
+int firstContact(int);
 void error(const char*);
 void getUsername(char* );
-int sendMsg(int, char*);
+int sendMsg(int) ;
 int receiveMsg(int);
 int _sendAll(int, char*, int);
 void nullTermStr(char*);
 
 int main(int argc, char *argv[]) {
 	int check = 1;
-	char userName[11];
 	int pSock;
 	if (argc == 2) {printf("Not enough arguements. Exit."); exit(0);}
 	pSock = establishConn(atoi(argv[2]), argv[1]);
+	printf("Connection established initiating handshake...\n");
 	firstContact(pSock);
 
 	while (check > 0) {
-		check = sendMsg(pSock, userName);
+		check = sendMsg(pSock);
 		if (check > 0)
 			check = receiveMsg(pSock);
 	}
@@ -44,34 +44,39 @@ int main(int argc, char *argv[]) {
 }
 
 int establishConn(int portNumber, char* hostName){
-	int socketFD; 
-	struct sockaddr_in serverAddress;
-	struct hostent* serverHostInfo;
+	int listenSocketFD, communicationFD; 
+	struct sockaddr_in serverAddress, clientAddress;
+	socklen_t sizeOfClientInfo;
 
-	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
-	serverHostInfo = gethostbyname(hostName);
-	if (serverHostInfo == NULL) { fprintf(stderr, "Server: ERROR, no such host\n"); exit(0); }
-	serverAddress.sin_family = AF_INET; // Create a network-capable socket
-	serverAddress.sin_port = htons(portNumber); // Store the port number
+	memset((char *)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
+	serverAddress.sin_family = AF_INET; // Type of socket
+	serverAddress.sin_port = htons(portNumber); // Gets port number from argv
+	serverAddress.sin_addr.s_addr = INADDR_ANY; // Gets data from any address
 
-	memcpy((char*)&serverAddress.sin_addr.s_addr, (char*)serverHostInfo->h_addr, serverHostInfo->h_length); // Copy in the address
+	// Set up the socket
+	listenSocketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
+	if (listenSocketFD < 0) error("ERROR opening socket");
 
-	socketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
-	if (socketFD < 0) error("Server: ERROR opening socket");
-
-	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to address
-		error("Server: ERROR connecting");
-	
-	return socketFD;
+	// Enable the socket to begin listening
+	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to port
+		error("ERROR on binding");
+	printf("Waiting for client connection...\n");
+	if (listen(listenSocketFD, 5) < 0) {error("SERVER: Listen socket error");} // Flip the socket on - it can now receive up to 5 connections
+	sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
+	communicationFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
+	if (communicationFD < 0) error("ERROR on accept");
+	return communicationFD;
 
 }
 /*Collects user name and sends first connection to server*/
-void firstContact(int socket, char* userName) {
-	char response;	
-	char handshake = '#';	
-	send(socket, handshake, strlen(userName), 0);
-	recv(socket, response, 1, 0);// Receive size of next message from server
-	if(response != @)
+int firstContact(int socket) {
+	char response[2];	
+	char* handshake = "#";
+
+	recv(socket, response, sizeof(response), 0);
+	send(socket, handshake, strlen(handshake), 0);
+	printf("response = %s\n", response );
+	if(strcmp(response, "@\n")==0)
 		return -1;
 	else
 		return 1;
@@ -91,19 +96,18 @@ void error(const char *msg) {
 *
 * Returns: 1 on continue or 0 for quit
 */
-int sendMsg(int socket, char* userName) {
+int sendMsg(int socket) {
 	char* quitCode = "quit42";
-	printf("%s> ", userName);
 	char buffer[500];
-	char sendBuffer[500 + strlen(userName)];
+	printf("send > ");
 	fgets(buffer, 501, stdin);
 	if (strcmp(buffer, "\\quit\n") == 0) {
 		_sendAll(socket, quitCode , strlen(quitCode));
 		return 0;
 	}
-	sprintf(sendBuffer, "%s> %s", userName, buffer );
-	nullTermStr(sendBuffer);
-	_sendAll(socket, sendBuffer, strlen(sendBuffer));
+//	sprintf(sendBuffer, "%s> %s", userName, buffer );
+//	nullTermStr(buffer);
+	_sendAll(socket, buffer, strlen(buffer));
 	return 1;
 }
 
@@ -136,7 +140,6 @@ int _sendAll(int s, char *buf, int len)
 *
 * Returns: Returns 1 on continue and returns 0 for exit and close
 */
-
 int receiveMsg(int socket) {
 	char buffer[501];
 	memset(buffer, 0, 501);

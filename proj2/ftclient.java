@@ -1,3 +1,8 @@
+/** 
+ * 
+ *  Arguments: 
+ */
+
 import java.util.Scanner;
 import java.net.*;
 import java.io.*;
@@ -13,29 +18,35 @@ public class ftclient {
 		}
 		try {
 			int serverPort = Integer.parseInt(args[1]);
-			int dataPort = Integer.parseInt(args[3]);
+//			int dataPort = Integer.parseInt(args[3]);
 		} catch (NumberFormatException | NullPointerException nfe) {
 			System.out.println("Incorrect port number format.");
 			return false;
 		}
+/*		
 		if (!"-g".equals(args[2]) && !"-l".equals(args[2])) {
 			System.out.println("Invalid command only -l (list remote directory or -g(get <filename> from remote directory.");
 			return false;
 		}
+	*/	
 		return true;
 	}
 
 	public static void main(String []args) {
 		Sock pSock = new Sock();
 
-		if (args.length == 6) {
+//		if (args.length == 6) {
+		if (args.length == 2) {
 			if (!verifyArgs(args))
 				System.exit(0);
 		} else {
 			System.out.println("Not enough arguments.");
 		}
-		pSock.createSocket(Integer.parseInt(args[1]) , args[0]);
-		pSock.sendMsg("hello");
+		while(true){
+			pSock.createSocket(Integer.parseInt(args[1]) , args[0]);
+			pSock.sendMsg("@");
+			pSock.receiveMsg();
+		}
 	}
 
 }
@@ -66,7 +77,9 @@ class Sock {
 	}
 
 	void receiveMsg() {
+		System.out.println("Waiting to receive!");
 		try {
+			in.ready();
 			String line = in.readLine();
 			System.out.println("Text received: " + line);
 		} catch (IOException e) {

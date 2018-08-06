@@ -10,3 +10,4 @@ Resources:
 A lot of the C used in the chatclient.c was pulled from my CS344 code which provided a basic amount of code.
 http://www.oracle.com/webfolder/technetwork/tutorials/obe/java/SocketProgramming/SocketProgram.html
 https://www.oracle.com/technetwork/java/socket-140484.html#client
+http://profesores.elo.utfsm.cl/~agv/elo329/Java/javamakefile.html

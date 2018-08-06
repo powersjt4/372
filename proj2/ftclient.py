@@ -53,9 +53,10 @@ while 1:
 	connectionSocket, addr = serverSocket.accept()
 	connection = startUp(connectionSocket)
 	while connection:
+		if not sendMsg(connectionSocket):
+			break 
 		if not receiveMsg(connectionSocket):
 			print "Connection closed by client"
 			break
-		if not sendMsg(connectionSocket):
-			break 
+
 

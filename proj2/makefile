@@ -14,11 +14,30 @@ HEADERS =
 
 default: all 
 
- all: 
+all: server classes
+
+server: 
 	$(CC) ${CFLAGS} ${SRCS} -o ftserver $(LDFLAGS)
 
 test: ftserver.c
 	${CC} -g -v ftserver.c -o test 
 
+
+### Java commands below
+
+JC = javac
+
+.SUFFIXES: .java .class
+
+CLASSES = ftclient.java 
+
+
+.java.class:
+	$(JC) $(JFLAGS) $*.java
+
+classes: $(CLASSES:.java=.class)
+
+
+   
 clean:
-	${RM} -rf ftserver test  *.o 
+	${RM} ftserver test  *.o *.class 
