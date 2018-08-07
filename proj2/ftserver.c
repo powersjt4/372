@@ -17,9 +17,17 @@
 #include <unistd.h>
 #include <dirent.h>
 
-void getDirContents();
+struct cmd
+{   char command[2];
+   int port;
+   char filename[50];
+};
+
+void getDirContents(int);
+int processCommand(int,int);
+int receiveCommands(int, struct cmd*);
 int establishConn(int, char*);
-int firstContact(int);
+int handshake(int);
 void error(const char*);
 void getUsername(char* );
 int sendMsg(int) ;
@@ -30,24 +38,89 @@ void nullTermStr(char*);
 int main(int argc, char *argv[]) {
 	int check = 1;
 	int pSock;
+	char buffer[500];
+	struct cmd commands;
 	if (argc == 2) {printf("Not enough arguements. Exit."); exit(0);}
-	getDirContents();
-	pSock = establishConn(atoi(argv[2]), argv[1]);
-	printf("Connection established initiating handshake...\n");
-	firstContact(pSock);
 
-	while (check > 0) {
-		check = sendMsg(pSock);
-		if (check > 0)
-			check = receiveMsg(pSock);
-	}
+	pSock = establishConn(atoi(argv[2]), argv[1]);
+	printf("(%d)Connection established initiating handshake...\n", check);
+	check = handshake(pSock);
+	printf("(%d)Handshake valid processing command...\n", check);
+	check = receiveCommands(pSock, &commands);
+	printf("(%d)Handshake valid processing command...\n", check);
+	check = processCommand(pSock, check);
 	close(pSock);
 	printf("Socket Closed...Goodbye.\n");
 	return 0;
 }
 
-int establishConn(int portNumber, char* hostName){
-	int listenSocketFD, communicationFD; 
+int receiveCommands(int pSock, struct cmd* rtncmds){
+
+	char buffer[500];
+ 
+	recv(pSock, buffer, sizeof(buffer), 0);// Receive command
+	printf("response2 = %s\n", buffer );
+	if (strcmp(buffer, "-l") == 0 || strcmp(buffer, "-g") == 0) {
+		strcpy(rtncmds->command,buffer); 
+	} else{
+		return -1;
+	}
+
+	return 0;
+}
+
+int processCommand(int pSock, int check) {
+	char* error = "Invalid Command\n";
+	//pSock = establishConn(atoi(argv[2]), argv[1]);
+	if (check < 0) {
+		printf("Handshake Failed\n");
+		return -1;
+	} else if (check == 1) { // client sent -l send directory list
+		getDirContents(pSock);
+		return 1;
+	} else if (check == 2) { //Client sent -g send file
+		printf("Nothing yet\n");
+		return 2;
+	}else{
+		printf("%s", error);  //Client sent invalid command
+		_sendAll(pSock, error, strlen(error));
+		return -1;
+	}
+
+}
+
+void getDirContents(int socket) {
+	struct dirent *entry;;
+	char buffer[500];
+	DIR *curDir = opendir(".");
+	if (curDir == NULL) {
+		printf("Could not get directory contents.");
+		return;
+	}
+	while ((entry = readdir(curDir)) != NULL) {
+		printf("%s\n", entry->d_name);
+		sprintf(buffer, "%s\n", entry->d_name);
+		_sendAll(socket, buffer, strlen(buffer));
+	}
+	_sendAll(socket, "%%", 2);
+	closedir(curDir);
+
+}
+
+/*Collects user name and sends first connection to server*/
+int handshake(int socket) {
+	char response[2];
+	char* handshake = "#\n";
+	recv(socket, response, sizeof(response), 0);
+	send(socket, handshake, strlen(handshake), 0);
+	printf("response = %s\n", response );
+	if (strcmp(response, "@\n") != 0)
+		return -1;
+	return 1;
+}
+
+int establishConn(int portNumber, char* hostName) {
+	int listenSocketFD, communicationFD;
 	struct sockaddr_in serverAddress, clientAddress;
 	socklen_t sizeOfClientInfo;
 
@@ -69,36 +142,6 @@ int establishConn(int portNumber, char* hostName){
 	communicationFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
 	if (communicationFD < 0) error("ERROR on accept");
 	return communicationFD;
-
-}
-
-void getDirContents(){
-	struct dirent *entry;;
-	DIR *curDir = opendir(".");
-	if (curDir == NULL){
-		printf("Could not get directory contents.");
-		return;
-	}
-
-	while((entry = readdir(curDir))!= NULL){
-		printf("%s\n",entry->d_name);
-	}
-	closedir(curDir);
-
-}
-
-/*Collects user name and sends first connection to server*/
-int firstContact(int socket) {
-	char response[2];	
-	char* handshake = "#";
-
-	recv(socket, response, sizeof(response), 0);
-	send(socket, handshake, strlen(handshake), 0);
-	printf("response = %s\n", response );
-	if(strcmp(response, "@\n")==0)
-		return -1;
-	else
-		return 1;
 }
 
 // Error function used for reporting issues

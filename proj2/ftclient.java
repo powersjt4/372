@@ -1,6 +1,6 @@
-/** 
- * 
- *  Arguments: 
+/**
+ *
+ *  Arguments:
  */
 
 import java.util.Scanner;
@@ -8,6 +8,7 @@ import java.net.*;
 import java.io.*;
 
 public class ftclient {
+
 
 	public static boolean verifyArgs(String[] args) {
 		String edu = ".engr.oregonstate.edu";
@@ -23,18 +24,34 @@ public class ftclient {
 			System.out.println("Incorrect port number format.");
 			return false;
 		}
-/*		
-		if (!"-g".equals(args[2]) && !"-l".equals(args[2])) {
-			System.out.println("Invalid command only -l (list remote directory or -g(get <filename> from remote directory.");
+		
+				if (!"-g".equals(args[2]) && !"-l".equals(args[2])) {
+					System.out.println("Invalid command only -l (list remote directory or -g(get <filename> from remote directory.");
+					return false;
+				}
+			
+		return true;
+	}
+
+	public static boolean sendCommands(Sock pSock, String cmd) {
+
+		pSock.sendMsg("@");
+		String input = pSock.receiveMsg();
+		if (input.equals("#")) {
+			System.out.println("Success " + input);
+			pSock.sendMsg(cmd);
+			return true;
+		} else {
+			System.out.println("failed = " + input);
 			return false;
 		}
-	*/	
-		return true;
+
 	}
 
 	public static void main(String []args) {
 		Sock pSock = new Sock();
-
+		Scanner reader = new Scanner(System.in);
+		String buffer = null;
 //		if (args.length == 6) {
 		if (args.length == 2) {
 			if (!verifyArgs(args))
@@ -43,13 +60,19 @@ public class ftclient {
 			System.out.println("Not enough arguments.");
 		}
 		pSock.createSocket(Integer.parseInt(args[1]) , args[0]);
-		while(true){
-
-			pSock.sendMsg("@");
-			pSock.receiveMsg();
+		sendCommands(pSock, args[2]);
+		if ("-l".equals(args[2])){
+			while(!"%%".equals(buffer)){
+				buffer = pSock.receiveMsg();
+				System.out.println(buffer);
+			}
+		}
+		while (true) {
+			String msg = reader.nextLine();
+			pSock.sendMsg(msg);
+			System.out.println(pSock.receiveMsg());
 		}
 	}
-
 }
 
 class Sock {
@@ -77,15 +100,16 @@ class Sock {
 		out.println(msg);
 	}
 
-	void receiveMsg() {
-		System.out.println("Waiting to receive!");
+	String receiveMsg() {
+//		System.out.println("Waiting to receive!");
 		try {
 			in.ready();
-			String line = in.readLine();
-			System.out.println("Text received: " + line);
+			String str = in.readLine();
+			return str;
+//			System.out.println("Text received: " + line);
 		} catch (IOException e) {
 			System.out.println("Read failed");
-			System.exit(1);
+			return null;
 		}
 	}
 }
