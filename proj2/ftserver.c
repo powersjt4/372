@@ -15,7 +15,9 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <dirent.h>
 
+void getDirContents();
 int establishConn(int, char*);
 int firstContact(int);
 void error(const char*);
@@ -29,6 +31,7 @@ int main(int argc, char *argv[]) {
 	int check = 1;
 	int pSock;
 	if (argc == 2) {printf("Not enough arguements. Exit."); exit(0);}
+	getDirContents();
 	pSock = establishConn(atoi(argv[2]), argv[1]);
 	printf("Connection established initiating handshake...\n");
 	firstContact(pSock);
@@ -68,6 +71,22 @@ int establishConn(int portNumber, char* hostName){
 	return communicationFD;
 
 }
+
+void getDirContents(){
+	struct dirent *entry;;
+	DIR *curDir = opendir(".");
+	if (curDir == NULL){
+		printf("Could not get directory contents.");
+		return;
+	}
+
+	while((entry = readdir(curDir))!= NULL){
+		printf("%s\n",entry->d_name);
+	}
+	closedir(curDir);
+
+}
+
 /*Collects user name and sends first connection to server*/
 int firstContact(int socket) {
 	char response[2];	
@@ -162,4 +181,5 @@ void nullTermStr(char* str) {
 	if (str[strlen(str) - 1] == '\n') //Strip new line from fgets
 		str[strlen(str) - 1] = '\0';
 }
+
 
