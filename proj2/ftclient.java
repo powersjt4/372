@@ -42,8 +42,9 @@ public class ftclient {
 		} else {
 			System.out.println("Not enough arguments.");
 		}
+		pSock.createSocket(Integer.parseInt(args[1]) , args[0]);
 		while(true){
-			pSock.createSocket(Integer.parseInt(args[1]) , args[0]);
+
 			pSock.sendMsg("@");
 			pSock.receiveMsg();
 		}
