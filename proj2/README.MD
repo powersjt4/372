@@ -12,3 +12,4 @@ http://www.oracle.com/webfolder/technetwork/tutorials/obe/java/SocketProgramming
 https://www.oracle.com/technetwork/java/socket-140484.html#client
 http://profesores.elo.utfsm.cl/~agv/elo329/Java/javamakefile.html
 https://www.geeksforgeeks.org/c-program-list-files-sub-directories-directory/
+https://crunchify.com/how-to-get-server-ip-address-and-hostname-in-java/

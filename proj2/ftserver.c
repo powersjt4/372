@@ -19,15 +19,15 @@
 
 struct cmd
 {   char command[2];
-   int port;
+   int dataPort;
    char filename[50];
 };
 
 void getDirContents(int);
 int processCommand(int,int);
 int receiveCommands(int, struct cmd*);
-int establishConn(int, char*);
-int handshake(int);
+int establishConn(int);
+int handshake(int, char*);
 void error(const char*);
 void getUsername(char* );
 int sendMsg(int) ;
@@ -38,16 +38,17 @@ void nullTermStr(char*);
 int main(int argc, char *argv[]) {
 	int check = 1;
 	int pSock;
-	char buffer[500];
+	//char buffer[500];
+	char clientHostname[500];
 	struct cmd commands;
-	if (argc == 2) {printf("Not enough arguements. Exit."); exit(0);}
+	if (argc == 1) {printf("Not enough arguements. Exit."); exit(0);}
 
-	pSock = establishConn(atoi(argv[2]), argv[1]);
-	printf("(%d)Connection established initiating handshake...\n", check);
-	check = handshake(pSock);
-	printf("(%d)Handshake valid processing command...\n", check);
+	pSock = establishConn(atoi(argv[1]));
+	printf("(%d)Server open on %s...\n", check,argv[1] );
+	check = handshake(pSock,clientHostname);
+	printf("(%d)Connection from %s...\n", check, clientHostname);
 	check = receiveCommands(pSock, &commands);
-	printf("(%d)Handshake valid processing command...\n", check);
+	printf("(%d)Command valid processing command (%s)...\n", check,commands.command);
 	check = processCommand(pSock, check);
 	close(pSock);
 	printf("Socket Closed...Goodbye.\n");
@@ -55,17 +56,19 @@ int main(int argc, char *argv[]) {
 }
 
 int receiveCommands(int pSock, struct cmd* rtncmds){
-
 	char buffer[500];
- 
+	int numArgs = 0;
+	memset(buffer, 0, 500);
 	recv(pSock, buffer, sizeof(buffer), 0);// Receive command
-	printf("response2 = %s\n", buffer );
-	if (strcmp(buffer, "-l") == 0 || strcmp(buffer, "-g") == 0) {
-		strcpy(rtncmds->command,buffer); 
-	} else{
-		return -1;
-	}
-
+	nullTermStr(buffer);
+	numArgs = buffer[0] -'0';
+	printf("response2 = (%s) and numArgs = %c\n", buffer, buffer[0]);
+	if(numArgs == 2){
+		sscanf(buffer,"%d %s %d", &numArgs, rtncmds->command, &rtncmds->dataPort);
+	} else if(numArgs == 3){
+		sscanf(buffer,"%d %s %s %d", &numArgs, rtncmds->command,rtncmds->filename, &rtncmds->dataPort);
+	}	
+	printf("Command = %s -- dataPort = %d filename = %s\n", rtncmds->command, rtncmds->dataPort, rtncmds->filename );
 	return 0;
 }
 
@@ -108,18 +111,23 @@ void getDirContents(int socket) {
 }
 
 /*Collects user name and sends first connection to server*/
-int handshake(int socket) {
-	char response[2];
+int handshake(int socket,char* clientHostname) {
+	char response[500];
 	char* handshake = "#\n";
 	recv(socket, response, sizeof(response), 0);
+//	printf("Response 1 = (%s)", response);// Should be hostname
+	nullTermStr(response);
+	strcpy(clientHostname, response);
 	send(socket, handshake, strlen(handshake), 0);
-	printf("response = %s\n", response );
+	memset(response, 0, 500);
+	recv(socket, response, sizeof(response), 0);
+//	printf("Response 2 = (%s)", response ); // should be @
 	if (strcmp(response, "@\n") != 0)
 		return -1;
-	return 1;
+	return 0;
 }
 
-int establishConn(int portNumber, char* hostName) {
+int establishConn(int portNumber) {
 	int listenSocketFD, communicationFD;
 	struct sockaddr_in serverAddress, clientAddress;
 	socklen_t sizeOfClientInfo;
@@ -206,10 +214,6 @@ int receiveMsg(int socket) {
 	char buffer[501];
 	memset(buffer, 0, 501);
 	recv(socket, buffer, 500 , 0);// Receive size of next message from server
-	if (strcmp(buffer, "quit43") == 0) {
-		return 0;
-	}
-	printf( "%s\n", buffer);
 	return 1;
 }
 /* Function: nullTermStr
