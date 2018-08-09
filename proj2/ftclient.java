@@ -1,6 +1,5 @@
 /**
  *
- *  Arguments:
  */
 
 import java.util.Scanner;
@@ -72,9 +71,23 @@ public class ftclient {
 		pSock.sendMsg(cmd);
 		return true;
 	}
+	public static boolean processList(Sock pSock,Sock qSock, String[] args) {
+		String buffer = pSock.receiveMsg();
+		if("ok".equals(buffer)){			// If server sends ok it will send list on qSock
+			while(!"%%".equals(buffer)){
+				buffer = qSock.receiveMsg();
+				System.out.println(buffer);
+			}
+		}else{
+			System.out.println(buffer);//Else print error message sent by client
+			return false;
+		}
+		return true;
+	}
 
 	public static void main(String []args) {
 		Sock pSock = new Sock();
+		Sock qSock = new Sock();
 		Scanner reader = new Scanner(System.in);
 		String buffer = null;
 		if (args.length >= 4 && args.length <= 5) {
@@ -86,20 +99,18 @@ public class ftclient {
 			System.out.println("Not enough arguments number of args = "+ args.length +".");
 			System.exit(0);
 		}
-		pSock.createSocket(Integer.parseInt(args[1]) , args[0]);
+		pSock.createSocket(Integer.parseInt(args[1]),args[0]);
+		if(args.length == 5){
+			qSock.createSocket(Integer.parseInt(args[4]),args[0]); //Case -g dataPort is arg[4]
+		}else{
+			qSock.createSocket(Integer.parseInt(args[3]), args[0]);//Case -l dataPort is arg[3]
+		}
 		handshake(pSock);
 		sendCommands(pSock, args);
-		/*			if ("-l".equals(args[2])){
-					while(!"%%".equals(buffer)){
-						buffer = pSock.receiveMsg();
-						System.out.println(buffer);
-					}
-				}
-			while (true) {
-					String msg = reader.nextLine();
-					pSock.sendMsg(msg);
-					System.out.println(pSock.receiveMsg());
-				}*/
+		
+		if ("-l".equals(args[2])){
+			processList(pSock, qSock, args);
+		}
 	}
 }
 

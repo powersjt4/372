@@ -18,13 +18,13 @@
 #include <dirent.h>
 
 struct cmd
-{   char command[2];
+{  char command[2];
    int dataPort;
    char filename[50];
 };
 
 void getDirContents(int);
-int processCommand(int,int);
+int processCommand(int,int, struct cmd*);
 int receiveCommands(int, struct cmd*);
 int establishConn(int);
 int handshake(int, char*);
@@ -36,8 +36,8 @@ int _sendAll(int, char*, int);
 void nullTermStr(char*);
 
 int main(int argc, char *argv[]) {
-	int check = 1;
-	int pSock;
+	int check = 0;
+	int pSock, qSock;
 	//char buffer[500];
 	char clientHostname[500];
 	struct cmd commands;
@@ -49,8 +49,10 @@ int main(int argc, char *argv[]) {
 	printf("(%d)Connection from %s...\n", check, clientHostname);
 	check = receiveCommands(pSock, &commands);
 	printf("(%d)Command valid processing command (%s)...\n", check,commands.command);
-	check = processCommand(pSock, check);
+	qSock = establishConn(commands.dataPort); 
+	processCommand(pSock, qSock, &commands);
 	close(pSock);
+	close(qSock);
 	printf("Socket Closed...Goodbye.\n");
 	return 0;
 }
@@ -72,27 +74,24 @@ int receiveCommands(int pSock, struct cmd* rtncmds){
 	return 0;
 }
 
-int processCommand(int pSock, int check) {
+int processCommand(int pSock, int qSock, struct cmd* commands){
 	char* error = "Invalid Command\n";
 	//pSock = establishConn(atoi(argv[2]), argv[1]);
-	if (check < 0) {
-		printf("Handshake Failed\n");
-		return -1;
-	} else if (check == 1) { // client sent -l send directory list
+	if (strcmp(commands->command, "-l")== 0) { // client sent -l send directory list
 		getDirContents(pSock);
 		return 1;
-	} else if (check == 2) { //Client sent -g send file
+	} else if (strcmp(commands->command, "-g")== 0){ //Client sent -g send file
 		printf("Nothing yet\n");
 		return 2;
 	}else{
-		printf("%s", error);  //Client sent invalid command
+		printf("%s", error);  //Client sent an invalid command
 		_sendAll(pSock, error, strlen(error));
 		return -1;
 	}
 
 }
 
-void getDirContents(int socket) {
+void getDirContents(int socket){
 	struct dirent *entry;;
 	char buffer[500];
 	DIR *curDir = opendir(".");
@@ -100,6 +99,9 @@ void getDirContents(int socket) {
 		printf("Could not get directory contents.");
 		return;
 	}
+	_sendAll(socket, "ok\n", strlen("ok\n"));//Sends ok to client to initiate listening on qSock
+						// Error is sent in processCommand function.
+
 	while ((entry = readdir(curDir)) != NULL) {
 		printf("%s\n", entry->d_name);
 		sprintf(buffer, "%s\n", entry->d_name);
