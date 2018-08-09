@@ -16,6 +16,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <ctype.h>
 
 struct cmd
 {  char command[2];
@@ -23,7 +24,8 @@ struct cmd
    char filename[50];
 };
 
-void getDirContents(int);
+void sendList(int);
+int sendFile(int, int, char*);
 int processCommand(int,int, struct cmd*);
 int receiveCommands(int, struct cmd*);
 int establishConn(int);
@@ -70,28 +72,67 @@ int receiveCommands(int pSock, struct cmd* rtncmds){
 	} else if(numArgs == 3){
 		sscanf(buffer,"%d %s %s %d", &numArgs, rtncmds->command,rtncmds->filename, &rtncmds->dataPort);
 	}	
-	printf("Command = %s -- dataPort = %d filename = %s\n", rtncmds->command, rtncmds->dataPort, rtncmds->filename );
+	//printf("Command = %s -- dataPort = %d filename = %s\n", rtncmds->command, rtncmds->dataPort, rtncmds->filename );
 	return 0;
 }
 
 int processCommand(int pSock, int qSock, struct cmd* commands){
+	char* ok ="ok\n";
 	char* error = "Invalid Command\n";
-	//pSock = establishConn(atoi(argv[2]), argv[1]);
+	char* fileError = "File not found\n";
 	if (strcmp(commands->command, "-l")== 0) { // client sent -l send directory list
-		getDirContents(pSock);
+		_sendAll(pSock, ok, strlen(ok));//Sends ok to client to initiate listening on qSock
+		sendList(qSock);
 		return 1;
 	} else if (strcmp(commands->command, "-g")== 0){ //Client sent -g send file
-		printf("Nothing yet\n");
-		return 2;
+		_sendAll(pSock, ok, strlen(ok));//Sends ok to client to initiate listening on qSock
+		if(sendFile(pSock, qSock, commands->filename) > 0){
+			return 2;
+		} else {
+			printf("%s\n", fileError);  //Client sent an invalid command
+			_sendAll(pSock, fileError, strlen(fileError));
+			return -1;
+		}
 	}else{
-		printf("%s", error);  //Client sent an invalid command
+		printf("%s\n", error);  //Client sent an invalid command
 		_sendAll(pSock, error, strlen(error));
 		return -1;
 	}
 
 }
 
-void getDirContents(int socket){
+int sendFile(int pSock, int qSock, char* filename){
+	FILE* fp;
+	int filelines = 0;
+	char buffer[500];
+	char ch;
+	memset(buffer, 0, 500);
+	if (access(filename, F_OK) == -1){  // Counter number of words in file
+		return -1;
+	}	
+	fp = fopen(filename, "r");
+	while((ch = getc(fp)) != EOF){
+		fscanf(fp,"%s",buffer);
+		if(ch=='\n') //Counts number of lines in file
+			filelines++;
+	}
+	sprintf(buffer,"%d\n", filelines);
+	_sendAll(pSock, buffer, sizeof(buffer)); //Send number of words in file
+	rewind(fp);
+	printf("Lines left = %d ",filelines);
+	memset(buffer, 0, 500);
+	
+	while(fgets(buffer,sizeof(buffer),fp)){
+		_sendAll(qSock, buffer, sizeof(buffer));
+		printf("Lines left = %d ",--filelines);
+		printf("%s", buffer);
+	}
+	printf("File Sent to client\n");
+	fclose(fp);
+	return 0;
+}
+
+void sendList(int qSock){
 	struct dirent *entry;;
 	char buffer[500];
 	DIR *curDir = opendir(".");
@@ -99,17 +140,15 @@ void getDirContents(int socket){
 		printf("Could not get directory contents.");
 		return;
 	}
-	_sendAll(socket, "ok\n", strlen("ok\n"));//Sends ok to client to initiate listening on qSock
-						// Error is sent in processCommand function.
 
+						// Error is sent in processCommand function.
 	while ((entry = readdir(curDir)) != NULL) {
 		printf("%s\n", entry->d_name);
 		sprintf(buffer, "%s\n", entry->d_name);
-		_sendAll(socket, buffer, strlen(buffer));
+		_sendAll(qSock, buffer, strlen(buffer));
 	}
-	_sendAll(socket, "%%", 2);
+	_sendAll(qSock, "%%", 2);
 	closedir(curDir);
-
 }
 
 /*Collects user name and sends first connection to server*/

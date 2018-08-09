@@ -1,7 +1,6 @@
 /**
  *
  */
-
 import java.util.Scanner;
 import java.net.*;
 import java.io.*;
@@ -71,9 +70,11 @@ public class ftclient {
 		pSock.sendMsg(cmd);
 		return true;
 	}
-	public static boolean processList(Sock pSock,Sock qSock, String[] args) {
+
+	public static boolean processList(Sock pSock, Sock qSock) {
 		String buffer = pSock.receiveMsg();
-		if("ok".equals(buffer)){			// If server sends ok it will send list on qSock
+		//System.out.println("pSock receive msg" + buffer);
+		if("ok".equals(buffer)){			// If server sends ok on plist it will send list on qSock
 			while(!"%%".equals(buffer)){
 				buffer = qSock.receiveMsg();
 				System.out.println(buffer);
@@ -85,6 +86,41 @@ public class ftclient {
 		return true;
 	}
 
+	public static boolean processFile(Sock pSock, Sock qSock, String[] args) {
+		BufferedWriter bw = null;
+		File file = new File(args[4]);
+		int filelines;
+		int count = 0;
+		String buffer;
+		buffer = pSock.receiveMsg();
+		if("ok".equals(buffer)){			// If server sends ok on plist it will send list on qSock
+				filelines = Integer.parseInt(pSock.receiveMsg());
+				System.out.println(buffer);
+		}else{
+			System.out.println(buffer);//Else print error message sent by client
+			return false;
+		}
+		try{
+			if(file.exists()){
+				file = new File(args[4]+"copy");
+				file.createNewFile();
+			} else{
+				file.createNewFile();
+			}
+		} catch(IOException e){
+			  e.printStackTrace();
+		}
+		while(count <= filelines){	
+			System.out.println("Lines left = "+ filelines + " and count = " + count);//Else print error message sent by client
+			buffer = qSock.receiveMsg();
+			if("%%\n".equals(buffer)){
+				return true;
+			}
+			System.out.println(buffer);//Else print error message sent by client
+			count++;
+		}
+		return true;
+	}
 	public static void main(String []args) {
 		Sock pSock = new Sock();
 		Sock qSock = new Sock();
@@ -100,17 +136,21 @@ public class ftclient {
 			System.exit(0);
 		}
 		pSock.createSocket(Integer.parseInt(args[1]),args[0]);
+		handshake(pSock);
+		sendCommands(pSock, args);
 		if(args.length == 5){
 			qSock.createSocket(Integer.parseInt(args[4]),args[0]); //Case -g dataPort is arg[4]
 		}else{
 			qSock.createSocket(Integer.parseInt(args[3]), args[0]);//Case -l dataPort is arg[3]
 		}
-		handshake(pSock);
-		sendCommands(pSock, args);
-		
+
 		if ("-l".equals(args[2])){
-			processList(pSock, qSock, args);
+			processList(pSock, qSock);
+		} else if ("-g".equals(args[2])) {
+			processFile(pSock,qSock, args);
 		}
+		pSock.closeSocket();
+		qSock.closeSocket();
 	}
 }
 
@@ -140,15 +180,25 @@ class Sock {
 	}
 
 	String receiveMsg() {
-//		System.out.println("Waiting to receive!");
+		//System.out.println("Waiting to receive!");
 		try {
 			in.ready();
 			String str = in.readLine();
+			//System.out.println("Text received: " + str);
 			return str;
-//			System.out.println("Text received: " + line);
 		} catch (IOException e) {
 			System.out.println("Read failed");
 			return null;
 		}
+	}
+
+	void closeSocket(){
+		try{
+		this.socket.close();
+	} catch(IOException e){
+		e.printStackTrace();
+	}
+
+
 	}
 }

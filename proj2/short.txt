@@ -1,0 +1,3 @@
+this is a really short test file. I hope that the server sends this file to the client.
+Ok not much else to put in here because I want to keep it brief..
+...goodbye!
