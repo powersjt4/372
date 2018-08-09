@@ -120,12 +120,14 @@ int sendFile(int pSock, int qSock, char* filename){
 	_sendAll(pSock, buffer, sizeof(buffer)); //Send number of words in file
 	rewind(fp);
 	printf("Lines left = %d ",filelines);
-	memset(buffer, 0, 500);
 	
+	memset(buffer, 0, 500);
 	while(fgets(buffer,sizeof(buffer),fp)){
 		_sendAll(qSock, buffer, sizeof(buffer));
 		printf("Lines left = %d ",--filelines);
 		printf("%s", buffer);
+
+		memset(buffer, 0, 500);
 	}
 	printf("File Sent to client\n");
 	fclose(fp);
