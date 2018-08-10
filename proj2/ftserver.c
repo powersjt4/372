@@ -29,6 +29,7 @@ int sendFile(int, int, char*);
 int processCommand(int,int, struct cmd*);
 int receiveCommands(int, struct cmd*);
 int establishConn(int);
+int establishConnNew(int, int);
 int handshake(int, char*);
 void error(const char*);
 void getUsername(char* );
@@ -39,23 +40,50 @@ void nullTermStr(char*);
 
 int main(int argc, char *argv[]) {
 	int check = 0;
-	int pSock, qSock;
-	//char buffer[500];
+	int pSock, qSock, comSock, dataSock;
+	struct sockaddr_in clientAddress;
 	char clientHostname[500];
 	struct cmd commands;
 	if (argc == 1) {printf("Not enough arguements. Exit."); exit(0);}
 
-	pSock = establishConn(atoi(argv[1]));
-	printf("(%d)Server open on %s...\n", check,argv[1] );
-	check = handshake(pSock,clientHostname);
-	printf("(%d)Connection from %s...\n", check, clientHostname);
-	check = receiveCommands(pSock, &commands);
-	printf("(%d)Command valid processing command (%s)...\n", check,commands.command);
-	qSock = establishConn(commands.dataPort); 
-	printf("qSocket created processing commands...\n" );
-	processCommand(pSock, qSock, &commands);
+	//comSock = establishConn(atoi(argv[1]));
+	comSock = establishConnNew(atoi(argv[1]), 0);
+
+	printf("Listening on %s....", argv[1]);
+/*	pSock = accept(comSock, NULL, NULL);
+	if(pSock < 0){
+		check = -1;
+		error("Server Error Accepting Connection.\n");
+	}
+*/
+	while(1){
+			struct sockaddr_in serverAddress;
+			socklen_t sizeOfClientInfo;
+			pSock = accept(comSock, (struct sockaddr *)&serverAddress, &sizeOfClientInfo);
+			if(pSock < 0){
+				check = -1;
+			error("Server Error Accepting Connection.\n");
+			}
+			printf("(%d)Server open on %s...\n", check, argv[1] );
+			check = handshake(pSock,clientHostname);
+			printf("(%d)Connection from %s...\n", check, clientHostname);
+			check = receiveCommands(pSock, &commands);
+			printf("(%d)Command valid processing command (%s)...\n", check,commands.command);
+			//dataSock = establishConn(commands.dataPort); 
+			dataSock = establishConnNew(commands.dataPort, pSock); 
+			qSock = accept(dataSock, NULL, NULL);
+			if(pSock < 0){
+				check = -1;
+				error("Server Error Accepting Connection.\n");
+			}
+			printf("qSocket created processing commands...\n" );
+			processCommand(pSock, qSock, &commands);
+			close(qSock);
+			close(dataSock);
+			close(pSock);
+		
+	}
 	close(pSock);
-	close(qSock);
 	printf("Socket Closed...Goodbye.\n");
 	return 0;
 }
@@ -78,15 +106,15 @@ int receiveCommands(int pSock, struct cmd* rtncmds){
 }
 
 int processCommand(int pSock, int qSock, struct cmd* commands){
-	char* ok ="ok\n";
+	char* ack  ="ack\n";
 	char* error = "Invalid Command\n";
 	char* fileError = "File not found\n";
 	if (strcmp(commands->command, "-l")== 0) { // client sent -l send directory list
-		_sendAll(pSock, ok, strlen(ok));//Sends ok to client to initiate listening on qSock
+		_sendAll(pSock, ack, strlen(ack));//Sends ok to client to initiate listening on qSock
 		sendList(qSock);
 		return 1;
 	} else if (strcmp(commands->command, "-g")== 0){ //Client sent -g send file
-		_sendAll(pSock, ok, strlen(ok));//Sends ok to client to initiate listening on qSock
+		_sendAll(pSock, ack, strlen(ack));//Sends ok to client to initiate listening on qSock
 		if(sendFile(pSock, qSock, commands->filename) > 0){
 			return 2;
 		} else {
@@ -168,15 +196,11 @@ int handshake(int socket,char* clientHostname) {
 	return 0;
 }
 
-int establishConnNew(){
-	static int qSockCheckIfAlreadyCreated = 0;//Static variable to keep teack of the qSock logic
-	static int previousSocketNumber = 0;
-	char* handshake = "@@\n";	
-
+int establishConnNew(int portNumber, int previousSock){
 	int listenSocketFD;
-	struct sockaddr_in serverAddress, clientAddress;
+	struct sockaddr_in serverAddress;
 	socklen_t sizeOfClientInfo;
-
+	char* handshake = "@@\n";
 	memset((char *)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
 	serverAddress.sin_family = AF_INET; // Type of socket
 	serverAddress.sin_port = htons(portNumber); // Gets port number from argv
@@ -189,10 +213,10 @@ int establishConnNew(){
 	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0){ // Connect socket to port
 		error("ERROR on binding");
 	}
-	if(qSockCheckIfAlreadyCreated > 0){
-		_sendAll(previousSocketNumber, handshake, strlen(handshake)); 
-	}		
-	printf("Listening on %d....", portNumber);
+	if(previousSock > 0){
+		_sendAll(previousSock, handshake, strlen(handshake)); 
+	}
+	printf("Listening on port %d\n", portNumber);	
 	if (listen(listenSocketFD, 5) < 0) {error("SERVER: Listen socket error");} // Flip the socket on - it can now receive up to 5 connections
 
 	return listenSocketFD;

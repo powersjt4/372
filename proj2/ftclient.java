@@ -73,8 +73,8 @@ public class ftclient {
 
 	public static boolean processList(Sock pSock, Sock qSock) {
 		String buffer = pSock.receiveMsg();
-		//System.out.println("pSock receive msg" + buffer);
-		if("ok".equals(buffer)){			// If server sends ok on plist it will send list on qSock
+		System.out.println("pSock receive msg" + buffer);
+		if("ack".equals(buffer)){			// If server sends ok on plist it will send list on qSock
 			while(!"%%".equals(buffer)){
 				buffer = qSock.receiveMsg();
 				System.out.println(buffer);
@@ -93,7 +93,7 @@ public class ftclient {
 		int count = 0;
 		String buffer;
 		buffer = pSock.receiveMsg();
-		if("ok".equals(buffer)){			// If server sends ok on plist it will send list on qSock
+		if("ack".equals(buffer)){			// If server sends ok on plist it will send list on qSock
 				filelines = Integer.parseInt(pSock.receiveMsg());
 				System.out.println(buffer);
 		}else{
@@ -124,8 +124,7 @@ public class ftclient {
 
 	public static boolean checkForQSocket(Sock pSock){
 		String	buffer = pSock.receiveMsg();
-		if("@@".equals(buffer)){			// If server sends ok on plist it will send list on qSock
-			System.out.println("Qsock ready " + buffer);
+		if("@@".equals(buffer)){			// If server sends ok on pSock it will send list on qSock
 			return true;
 		}	
 		return false;
@@ -154,7 +153,6 @@ public class ftclient {
 		}else{
 				qSock.createSocket(Integer.parseInt(args[3]), args[0]);//Case -l dataPort is arg[3]
 		}
-		
 		if ("-l".equals(args[2])){
 			processList(pSock, qSock);
 		} else if ("-g".equals(args[2])) {
