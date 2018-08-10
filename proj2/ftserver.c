@@ -168,6 +168,36 @@ int handshake(int socket,char* clientHostname) {
 	return 0;
 }
 
+int establishConnNew(){
+	static int qSockCheckIfAlreadyCreated = 0;//Static variable to keep teack of the qSock logic
+	static int previousSocketNumber = 0;
+	char* handshake = "@@\n";	
+
+	int listenSocketFD;
+	struct sockaddr_in serverAddress, clientAddress;
+	socklen_t sizeOfClientInfo;
+
+	memset((char *)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
+	serverAddress.sin_family = AF_INET; // Type of socket
+	serverAddress.sin_port = htons(portNumber); // Gets port number from argv
+	serverAddress.sin_addr.s_addr = INADDR_ANY; // Gets data from any address
+		// Set up the socket
+	listenSocketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
+	if (listenSocketFD < 0) error("ERROR opening socket");
+
+		// Enable the socket to begin listening
+	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0){ // Connect socket to port
+		error("ERROR on binding");
+	}
+	if(qSockCheckIfAlreadyCreated > 0){
+		_sendAll(previousSocketNumber, handshake, strlen(handshake)); 
+	}		
+	printf("Listening on %d....", portNumber);
+	if (listen(listenSocketFD, 5) < 0) {error("SERVER: Listen socket error");} // Flip the socket on - it can now receive up to 5 connections
+
+	return listenSocketFD;
+}
+
 int establishConn(int portNumber) {
 	static int qSockCheckIfAlreadyCreated = 0;//Static variable to keep teack of the qSock logic
 	static int previousSocketNumber = 0;
