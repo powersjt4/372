@@ -121,6 +121,16 @@ public class ftclient {
 		}
 		return true;
 	}
+
+	public static boolean checkForQSocket(Sock pSock){
+		String	buffer = pSock.receiveMsg();
+		if("@@".equals(buffer)){			// If server sends ok on plist it will send list on qSock
+			System.out.println("Qsock ready " + buffer);
+			return true;
+		}	
+		return false;
+	}
+			
 	public static void main(String []args) {
 		Sock pSock = new Sock();
 		Sock qSock = new Sock();
@@ -138,12 +148,13 @@ public class ftclient {
 		pSock.createSocket(Integer.parseInt(args[1]),args[0]);
 		handshake(pSock);
 		sendCommands(pSock, args);
+		checkForQSocket(pSock);//wait for socket startup from server
 		if(args.length == 5){
-			qSock.createSocket(Integer.parseInt(args[4]),args[0]); //Case -g dataPort is arg[4]
+				qSock.createSocket(Integer.parseInt(args[4]), args[0]); //Case -g dataPort is arg[4]
 		}else{
-			qSock.createSocket(Integer.parseInt(args[3]), args[0]);//Case -l dataPort is arg[3]
+				qSock.createSocket(Integer.parseInt(args[3]), args[0]);//Case -l dataPort is arg[3]
 		}
-
+		
 		if ("-l".equals(args[2])){
 			processList(pSock, qSock);
 		} else if ("-g".equals(args[2])) {

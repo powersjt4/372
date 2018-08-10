@@ -52,6 +52,7 @@ int main(int argc, char *argv[]) {
 	check = receiveCommands(pSock, &commands);
 	printf("(%d)Command valid processing command (%s)...\n", check,commands.command);
 	qSock = establishConn(commands.dataPort); 
+	printf("qSocket created processing commands...\n" );
 	processCommand(pSock, qSock, &commands);
 	close(pSock);
 	close(qSock);
@@ -105,15 +106,12 @@ int sendFile(int pSock, int qSock, char* filename){
 	FILE* fp;
 	int filelines = 0;
 	char buffer[500];
-	char ch;
 	memset(buffer, 0, 500);
 	if (access(filename, F_OK) == -1){  // Counter number of words in file
 		return -1;
 	}	
 	fp = fopen(filename, "r");
-	while((ch = getc(fp)) != EOF){
-		fscanf(fp,"%s",buffer);
-		if(ch=='\n') //Counts number of lines in file
+	while(fgets(buffer,sizeof(buffer),fp)){
 			filelines++;
 	}
 	sprintf(buffer,"%d\n", filelines);
@@ -171,6 +169,9 @@ int handshake(int socket,char* clientHostname) {
 }
 
 int establishConn(int portNumber) {
+	static int qSockCheckIfAlreadyCreated = 0;//Static variable to keep teack of the qSock logic
+	static int previousSocketNumber = 0;
+	char* handshake = "@@\n";	
 	int listenSocketFD, communicationFD;
 	struct sockaddr_in serverAddress, clientAddress;
 	socklen_t sizeOfClientInfo;
@@ -185,13 +186,24 @@ int establishConn(int portNumber) {
 	if (listenSocketFD < 0) error("ERROR opening socket");
 
 	// Enable the socket to begin listening
-	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to port
+	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0){ // Connect socket to port
 		error("ERROR on binding");
-	printf("Waiting for client connection...\n");
+	}
+	if(qSockCheckIfAlreadyCreated > 0){
+		_sendAll(previousSocketNumber, handshake, strlen(handshake)); 
+	}		
+	printf("Listening on %d....", portNumber);
 	if (listen(listenSocketFD, 5) < 0) {error("SERVER: Listen socket error");} // Flip the socket on - it can now receive up to 5 connections
 	sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
 	communicationFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
 	if (communicationFD < 0) error("ERROR on accept");
+	if(qSockCheckIfAlreadyCreated > 0){
+		previousSocketNumber = 0;
+		qSockCheckIfAlreadyCreated = 0;
+	}else{
+		qSockCheckIfAlreadyCreated = 1;
+		previousSocketNumber = communicationFD;
+	}
 	return communicationFD;
 }
 
