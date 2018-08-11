@@ -32,13 +32,14 @@ int receiveCommands(int, struct cmd*);
 int establishConn(int);
 int establishConnNew(int, int);
 int handshake(int, struct cmd*);
-void error(const char*);
+int error(const char*);
 void getUsername(char* );
 int _sendAll(int, char*, int);
 void nullTermStr(char*);
 
 int main(int argc, char *argv[]) {
 	char* ack  = "ack\n";
+	char* err = "err\n";
 	int pSock, qSock, comSock, dataSock;
 	struct cmd clientInfo;
 	if (argc != 2) {printf("Not enough arguements. Exit."); exit(0);}
@@ -56,6 +57,10 @@ int main(int argc, char *argv[]) {
 		receiveCommands(pSock, &clientInfo);
 		printf("Got the commands\n");
 		dataSock = establishConnNew(clientInfo.dataPort, pSock);
+		if(dataSock < 0){
+			_sendAll(pSock, err, strlen(err));//Sends ack to client to initiate listening on qSock
+			break;
+		}
 		_sendAll(pSock, ack, strlen(ack));//Sends ack to client to initiate listening on qSock
 		qSock = accept(dataSock, NULL, NULL);
 				if (qSock < 0) {
@@ -187,23 +192,24 @@ int establishConnNew(int portNumber, int previousSock) {
 	serverAddress.sin_addr.s_addr = INADDR_ANY; // Gets data from any address
 	// Set up the socket
 	listenSocketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
-	if (listenSocketFD < 0) error("ERROR opening socket");
+	if (listenSocketFD < 0) return error("ERROR opening socket");
 
 	// Enable the socket to begin listening
 	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) { // Connect socket to port
-		error("ERROR on binding");
+		return error("ERROR on binding");
 	}
 	if (previousSock > 0) {
 		_sendAll(previousSock, handshake, strlen(handshake));
 	}
-	if (listen(listenSocketFD, 5) < 0) {error("SERVER: Listen socket error");} // Flip the socket on - it can now receive up to 5 connections
+	if (listen(listenSocketFD, 5) < 0) {return error("SERVER: Listen socket error");} // Flip the socket on - it can now receive up to 5 connections
 
 	return listenSocketFD;
 }
 
 // Error function used for reporting issues
-void error(const char *msg) {
-	perror(msg); exit(1);
+int error(const char *msg) {
+	perror(msg); 
+	return -1;
 }
 
 /* Function: _sendAll
