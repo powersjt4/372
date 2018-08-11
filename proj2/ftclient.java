@@ -71,9 +71,9 @@ public class ftclient {
 		return true;
 	}
 
-	public static boolean processList(Sock pSock, Sock qSock) {
+	public static boolean processList(Sock pSock, Sock qSock, String[] args) {
 		String buffer = pSock.receiveMsg();
-		System.out.println("pSock receive msg" + buffer);
+		System.out.println("Receiving Director structure from " + args[0] + ":" + args[3]);
 		if("ack".equals(buffer)){			// If server sends ok on plist it will send list on qSock
 			while(!"%%".equals(buffer)){
 				buffer = qSock.receiveMsg();
@@ -88,40 +88,38 @@ public class ftclient {
 
 	public static boolean processFile(Sock pSock, Sock qSock, String[] args) {
 		File file = new File(args[3]);
-		int filelines;
+		int filelines  = 0;
 		int count = 0;
+		int fileCount = 1;
 		String buffer;
-		BufferedWriter bw = null;
 		FileWriter fw = null;
 
-		try{
-				if(file.exists()){
-					file = new File(args[3]+"copy");
-					file.createNewFile();
-				} else{
-					file.createNewFile();
-				}
-				fw = new FileWriter(file.getName());
-				bw = new BufferedWriter(fw);
-
-			buffer = pSock.receiveMsg();
+			buffer = pSock.receiveMsg();//Receive ack or recieve error
 			if("ack".equals(buffer)){			// If server sends ok on plist it will send list on qSock
-					filelines = Integer.parseInt(pSock.receiveMsg());
-					System.out.println(buffer);
+				buffer = pSock.receiveMsg();
+				filelines = Integer.parseInt(buffer);
+				System.out.println(buffer);
 			}else{
 				System.out.println(buffer);//Else print error message sent by client
-				return false;
+				System.exit(0);
 			}
+		try{
+				while(file.exists()){
+						file  = new File(args[3]+fileCount);
+						fileCount++;
+					} 
+				file.createNewFile();
+				
+				fw = new FileWriter(file.getName(), true);
 
 			while(count < filelines){	
 				//System.out.println("Lines left = "+ filelines + " and count = " + count);//Else print error message sent by client
 				buffer = qSock.receiveMsg();
-				bw.write(buffer);
-			//	bw.newLine();
+				fw.write(buffer+"\n");
+				fw.flush();
 				System.out.println(buffer);//Else print error message sent by client
 				count++;
 			}
-			bw.close();
 			fw.close();
 		} catch(IOException e){
 			System.out.println("File creation error.");
@@ -130,12 +128,13 @@ public class ftclient {
 		return true;
 	}
 
-	public static boolean checkForQSocket(Sock pSock){
+	public static void checkForQSocket(Sock pSock){
 		String	buffer = pSock.receiveMsg();
-		if("@@".equals(buffer)){			// If server sends ok on pSock it will send list on qSock
-			return true;
+		System.out.println("Waiting for qSock ready");//wait for socket startup from server
+		while(!"ack".equals(buffer)){			// If server sends ok on pSock it will send list on qSock
+			buffer = pSock.receiveMsg();
+			System.out.println("Buffer = "+ buffer);
 		}	
-		return false;
 	}
 			
 	public static void main(String []args) {
@@ -155,14 +154,14 @@ public class ftclient {
 		pSock.createSocket(Integer.parseInt(args[1]),args[0]);
 		handshake(pSock);
 		sendCommands(pSock, args);
-		checkForQSocket(pSock);//wait for socket startup from server
+		checkForQSocket(pSock);
 		if(args.length == 5){
 				qSock.createSocket(Integer.parseInt(args[4]), args[0]); //Case -g dataPort is arg[4]
 		}else{
 				qSock.createSocket(Integer.parseInt(args[3]), args[0]);//Case -l dataPort is arg[3]
 		}
 		if ("-l".equals(args[2])){
-			processList(pSock, qSock);
+			processList(pSock, qSock, args);
 		} else if ("-g".equals(args[2])) {
 			processFile(pSock,qSock, args);
 		}
