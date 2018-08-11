@@ -19,7 +19,8 @@
 #include <ctype.h>
 
 struct cmd
-{  char command[2];
+{  char hostname[256];
+	char command[2];
    int dataPort;
    char filename[50];
 };
@@ -30,32 +31,19 @@ int processCommand(int,int, struct cmd*);
 int receiveCommands(int, struct cmd*);
 int establishConn(int);
 int establishConnNew(int, int);
-int handshake(int, char*);
+int handshake(int, struct cmd*);
 void error(const char*);
 void getUsername(char* );
-int sendMsg(int) ;
-int receiveMsg(int);
 int _sendAll(int, char*, int);
 void nullTermStr(char*);
 
 int main(int argc, char *argv[]) {
 	int check = 0;
 	int pSock, qSock, comSock, dataSock;
-	struct sockaddr_in clientAddress;
-	char clientHostname[500];
-	struct cmd commands;
+	struct cmd clientInfo;
 	if (argc == 1) {printf("Not enough arguements. Exit."); exit(0);}
-
-	//comSock = establishConn(atoi(argv[1]));
 	comSock = establishConnNew(atoi(argv[1]), 0);
-
-	printf("Listening on %s....", argv[1]);
-/*	pSock = accept(comSock, NULL, NULL);
-	if(pSock < 0){
-		check = -1;
-		error("Server Error Accepting Connection.\n");
-	}
-*/
+//	printf("Server open on %s....\n", argv[1]);
 	while(1){
 			struct sockaddr_in serverAddress;
 			socklen_t sizeOfClientInfo;
@@ -64,26 +52,24 @@ int main(int argc, char *argv[]) {
 				check = -1;
 			error("Server Error Accepting Connection.\n");
 			}
-			printf("(%d)Server open on %s...\n", check, argv[1] );
-			check = handshake(pSock,clientHostname);
-			printf("(%d)Connection from %s...\n", check, clientHostname);
-			check = receiveCommands(pSock, &commands);
-			printf("(%d)Command valid processing command (%s)...\n", check,commands.command);
-			//dataSock = establishConn(commands.dataPort); 
-			dataSock = establishConnNew(commands.dataPort, pSock); 
+			check = handshake(pSock, &clientInfo);
+			printf("Connection from %s...\n", clientInfo.hostname);
+			check = receiveCommands(pSock, &clientInfo);
+//			printf("(%d)Command valid processing command (%s)...\n", check,clientInfo.command);
+			dataSock = establishConnNew(clientInfo.dataPort, pSock); 
 			qSock = accept(dataSock, NULL, NULL);
 			if(pSock < 0){
 				check = -1;
 				error("Server Error Accepting Connection.\n");
 			}
-			printf("qSocket created processing commands...\n" );
-			processCommand(pSock, qSock, &commands);
+//			printf("qSocket created processing commands...\n" );
+			processCommand(pSock, qSock, &clientInfo);
 			close(qSock);
 			close(dataSock);
 			close(pSock);
 		
 	}
-	close(pSock);
+	close(comSock);
 	printf("Socket Closed...Goodbye.\n");
 	return 0;
 }
@@ -95,7 +81,7 @@ int receiveCommands(int pSock, struct cmd* rtncmds){
 	recv(pSock, buffer, sizeof(buffer), 0);// Receive command
 	nullTermStr(buffer);
 	numArgs = buffer[0] -'0';
-	printf("response2 = (%s) and numArgs = %c\n", buffer, buffer[0]);
+//	printf("response2 = (%s) and numArgs = %c\n", buffer, buffer[0]);
 	if(numArgs == 2){
 		sscanf(buffer,"%d %s %d", &numArgs, rtncmds->command, &rtncmds->dataPort);
 	} else if(numArgs == 3){
@@ -110,6 +96,7 @@ int processCommand(int pSock, int qSock, struct cmd* commands){
 	char* error = "Invalid Command\n";
 	char* fileError = "File not found\n";
 	if (strcmp(commands->command, "-l")== 0) { // client sent -l send directory list
+		printf("List directory requested on port...");
 		_sendAll(pSock, ack, strlen(ack));//Sends ok to client to initiate listening on qSock
 		sendList(qSock);
 		return 1;
@@ -145,8 +132,9 @@ int sendFile(int pSock, int qSock, char* filename){
 	sprintf(buffer,"%d\n", filelines);
 	_sendAll(pSock, buffer, sizeof(buffer)); //Send number of words in file
 	rewind(fp);
-	printf("Lines left = %d ",filelines);
+//	printf("Lines left = %d ",filelines);
 	
+	printf("port...");
 	memset(buffer, 0, 500);
 	while(fgets(buffer,sizeof(buffer),fp)){
 		_sendAll(qSock, buffer, sizeof(buffer));
@@ -180,17 +168,15 @@ void sendList(int qSock){
 }
 
 /*Collects user name and sends first connection to server*/
-int handshake(int socket,char* clientHostname) {
+int handshake(int socket,struct cmd* clientInfo) {
 	char response[500];
 	char* handshake = "#\n";
 	recv(socket, response, sizeof(response), 0);
-//	printf("Response 1 = (%s)", response);// Should be hostname
 	nullTermStr(response);
-	strcpy(clientHostname, response);
+	strcpy(clientInfo->hostname, response);
 	send(socket, handshake, strlen(handshake), 0);
 	memset(response, 0, 500);
 	recv(socket, response, sizeof(response), 0);
-//	printf("Response 2 = (%s)", response ); // should be @
 	if (strcmp(response, "@\n") != 0)
 		return -1;
 	return 0;
@@ -199,7 +185,6 @@ int handshake(int socket,char* clientHostname) {
 int establishConnNew(int portNumber, int previousSock){
 	int listenSocketFD;
 	struct sockaddr_in serverAddress;
-	socklen_t sizeOfClientInfo;
 	char* handshake = "@@\n";
 	memset((char *)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
 	serverAddress.sin_family = AF_INET; // Type of socket
@@ -222,72 +207,9 @@ int establishConnNew(int portNumber, int previousSock){
 	return listenSocketFD;
 }
 
-int establishConn(int portNumber) {
-	static int qSockCheckIfAlreadyCreated = 0;//Static variable to keep teack of the qSock logic
-	static int previousSocketNumber = 0;
-	char* handshake = "@@\n";	
-	int listenSocketFD, communicationFD;
-	struct sockaddr_in serverAddress, clientAddress;
-	socklen_t sizeOfClientInfo;
-
-	memset((char *)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
-	serverAddress.sin_family = AF_INET; // Type of socket
-	serverAddress.sin_port = htons(portNumber); // Gets port number from argv
-	serverAddress.sin_addr.s_addr = INADDR_ANY; // Gets data from any address
-
-	// Set up the socket
-	listenSocketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
-	if (listenSocketFD < 0) error("ERROR opening socket");
-
-	// Enable the socket to begin listening
-	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0){ // Connect socket to port
-		error("ERROR on binding");
-	}
-	if(qSockCheckIfAlreadyCreated > 0){
-		_sendAll(previousSocketNumber, handshake, strlen(handshake)); 
-	}		
-	printf("Listening on %d....", portNumber);
-	if (listen(listenSocketFD, 5) < 0) {error("SERVER: Listen socket error");} // Flip the socket on - it can now receive up to 5 connections
-	sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
-	communicationFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
-	if (communicationFD < 0) error("ERROR on accept");
-	if(qSockCheckIfAlreadyCreated > 0){
-		previousSocketNumber = 0;
-		qSockCheckIfAlreadyCreated = 0;
-	}else{
-		qSockCheckIfAlreadyCreated = 1;
-		previousSocketNumber = communicationFD;
-	}
-	return communicationFD;
-}
-
 // Error function used for reporting issues
 void error(const char *msg) {
 	perror(msg); exit(1);
-}
-
-/* Function: sendMsg
-* --------------------
-* Gets user input, append handle, call nullTermStr() and send using
-* _sendAll(). If user types \quit the connection is closed.
-*
-* n: socket file descriptor, buffer to send, length of buffer
-*
-* Returns: 1 on continue or 0 for quit
-*/
-int sendMsg(int socket) {
-	char* quitCode = "quit42";
-	char buffer[500];
-	printf("send > ");
-	fgets(buffer, 501, stdin);
-	if (strcmp(buffer, "\\quit\n") == 0) {
-		_sendAll(socket, quitCode , strlen(quitCode));
-		return 0;
-	}
-//	sprintf(sendBuffer, "%s> %s", userName, buffer );
-//	nullTermStr(buffer);
-	_sendAll(socket, buffer, strlen(buffer));
-	return 1;
 }
 
 /* Function: _sendAll
@@ -310,20 +232,6 @@ int _sendAll(int s, char *buf, int len)
 		bytesleft -= n;
 	}
 	return sent;
-}
-/* Function: receiveMsg
-* --------------------
-* Receives a message from the server and prints to console.
-*
-* n: the socket number
-*
-* Returns: Returns 1 on continue and returns 0 for exit and close
-*/
-int receiveMsg(int socket) {
-	char buffer[501];
-	memset(buffer, 0, 501);
-	recv(socket, buffer, 500 , 0);// Receive size of next message from server
-	return 1;
 }
 /* Function: nullTermStr
 * --------------------

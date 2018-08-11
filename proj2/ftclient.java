@@ -15,7 +15,7 @@ public class ftclient {
 	public static boolean verifyArgs(String[] args) {
 		String edu = ".engr.oregonstate.edu";
 		System.out.println("edu " + edu + " args[0] " + args[0]);
-		if (!("flip1" + edu).equals(args[0]) && !("flip2" + edu).equals(args[0]) && !("flip3" + edu).equals(args[0]) && !"localhost".equals(args[0]) ) {
+		if (!("flip1").equals(args[0]) && !("flip2").equals(args[0]) && !("flip3").equals(args[0]) && !"localhost".equals(args[0]) ) {
 			System.out.println("Incorrect server host.(flip(1,2,3) or localhost");
 			return false;
 		}
