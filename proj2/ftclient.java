@@ -87,38 +87,46 @@ public class ftclient {
 	}
 
 	public static boolean processFile(Sock pSock, Sock qSock, String[] args) {
-		BufferedWriter bw = null;
-		File file = new File(args[4]);
+		File file = new File(args[3]);
 		int filelines;
 		int count = 0;
 		String buffer;
-		buffer = pSock.receiveMsg();
-		if("ack".equals(buffer)){			// If server sends ok on plist it will send list on qSock
-				filelines = Integer.parseInt(pSock.receiveMsg());
-				System.out.println(buffer);
-		}else{
-			System.out.println(buffer);//Else print error message sent by client
-			return false;
-		}
+		BufferedWriter bw = null;
+		FileWriter fw = null;
+
 		try{
-			if(file.exists()){
-				file = new File(args[4]+"copy");
-				file.createNewFile();
-			} else{
-				file.createNewFile();
+				if(file.exists()){
+					file = new File(args[3]+"copy");
+					file.createNewFile();
+				} else{
+					file.createNewFile();
+				}
+				fw = new FileWriter(file.getName());
+				bw = new BufferedWriter(fw);
+
+			buffer = pSock.receiveMsg();
+			if("ack".equals(buffer)){			// If server sends ok on plist it will send list on qSock
+					filelines = Integer.parseInt(pSock.receiveMsg());
+					System.out.println(buffer);
+			}else{
+				System.out.println(buffer);//Else print error message sent by client
+				return false;
 			}
+
+			while(count < filelines){	
+				//System.out.println("Lines left = "+ filelines + " and count = " + count);//Else print error message sent by client
+				buffer = qSock.receiveMsg();
+				bw.write(buffer);
+			//	bw.newLine();
+				System.out.println(buffer);//Else print error message sent by client
+				count++;
+			}
+			bw.close();
+			fw.close();
 		} catch(IOException e){
-			  e.printStackTrace();
+			System.out.println("File creation error.");
 		}
-		while(count <= filelines){	
-			System.out.println("Lines left = "+ filelines + " and count = " + count);//Else print error message sent by client
-			buffer = qSock.receiveMsg();
-			if("%%\n".equals(buffer)){
-				return true;
-			}
-			System.out.println(buffer);//Else print error message sent by client
-			count++;
-		}
+
 		return true;
 	}
 
