@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
 	char* err = "err\n";
 	int pSock, qSock, comSock, dataSock;
 	struct cmd clientInfo;
-	if (argc != 2) {printf("Not enough arguements. Exit."); exit(0);}
+	if (argc != 2) {printf("Not enough arguments. Exit."); exit(0);}
 	comSock = establishConnNew(atoi(argv[1]), 0);
 	printf("Server open on %s\n", argv[1]);
 	while (1) {
@@ -55,15 +55,14 @@ int main(int argc, char *argv[]) {
 		handshake(pSock, &clientInfo);
 		printf("Connection from %s...\n", clientInfo.hostname);
 		receiveCommands(pSock, &clientInfo);
-		printf("Got the commands\n");
 		dataSock = establishConnNew(clientInfo.dataPort, pSock);
-		if(dataSock < 0){
+		if (dataSock < 0) {
 			_sendAll(pSock, err, strlen(err));//Sends ack to client to initiate listening on qSock
 			break;
 		}
 		_sendAll(pSock, ack, strlen(ack));//Sends ack to client to initiate listening on qSock
 		qSock = accept(dataSock, NULL, NULL);
-				if (qSock < 0) {
+		if (qSock < 0) {
 			error("Server Error Accepting Connection.\n");
 		}
 		processCommand(pSock, qSock, &clientInfo, ack);
@@ -108,9 +107,9 @@ int processCommand(int pSock, int qSock, struct cmd* commands, char* ack) {
 			printf("File not found. Sending Error Message to %s:%d\n", commands->hostname, commands->dataPort);  //Client sent an invalid filename
 			_sendAll(pSock, fileError, strlen(fileError));
 			return -1;
-		}else{
+		} else {
 			_sendAll(pSock, ack, strlen(ack));//Sends ack to client to process command no error
-			sendFile(pSock, qSock, commands); 
+			sendFile(pSock, qSock, commands);
 			return 2;
 		}
 	} else {
@@ -139,9 +138,6 @@ int sendFile(int pSock, int qSock, struct cmd *commands) {
 	memset(buffer, 0, 500);
 	while (fgets(buffer, sizeof(buffer), fp)) {
 		_sendAll(qSock, buffer, strlen(buffer));
-		printf("Lines left = %d ", --filelines);
-		printf("%s", buffer);
-
 		memset(buffer, 0, 500);
 	}
 	printf("File Sent to client\n");
@@ -208,7 +204,7 @@ int establishConnNew(int portNumber, int previousSock) {
 
 // Error function used for reporting issues
 int error(const char *msg) {
-	perror(msg); 
+	perror(msg);
 	return -1;
 }
 

@@ -5,7 +5,7 @@ To compile and run:
 	   -or- start up with the get command (-g) "java ftclient <Server_Hostname flip1,2,3 or localhost> <Server_Port_Number> <Command -g> <Filename_To_Get><Data_Port_Number>"
 	4. Sigint {ctrl-c} from the server will close the server
 
-	If the file already exists at the client location copy will be appended.
+	If the file already exists at the client location an increasing value will be appended.
 
 Resources: 
 A lot of the C used in the chatclient.c was pulled from my CS344 code which provided a basic amount of code.

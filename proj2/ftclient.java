@@ -8,22 +8,20 @@ import java.io.*;
 
 public class ftclient {
 	/**
-		args[0] = server host , args[1] = server port number, args[2] = commands -l or -g, 
+		args[0] = server host , args[1] = server port number, args[2] = commands -l or -g,
 		args[3] = data port for -l or filename for -g, args[4] = data port for -g
 	**/
 
 	public static boolean verifyArgs(String[] args) {
-		String edu = ".engr.oregonstate.edu";
-		System.out.println("edu " + edu + " args[0] " + args[0]);
 		if (!("flip1").equals(args[0]) && !("flip2").equals(args[0]) && !("flip3").equals(args[0]) && !"localhost".equals(args[0]) ) {
 			System.out.println("Incorrect server host.(flip(1,2,3) or localhost");
 			return false;
 		}
 		try {
 			int serverPort = Integer.parseInt(args[1]);
-			if(args.length == 5){
-				int dataPort = Integer.parseInt(args[4]); //Command is -g uses 5 args 
-			}else if (args.length == 4){
+			if (args.length == 5) {
+				int dataPort = Integer.parseInt(args[4]); //Command is -g uses 5 args
+			} else if (args.length == 4) {
 				int dataPort = Integer.parseInt(args[3]); // Commands i -l uses 4 args
 			}
 		} catch (NumberFormatException | NullPointerException nfe) {
@@ -31,7 +29,7 @@ public class ftclient {
 			return false;
 		}
 		if (!"-g".equals(args[2]) && !"-l".equals(args[2])) {
-			System.out.println("Invalid command only -l (list remote directory or -g(get <filename> from remote directory.");
+			System.out.println("Invalid command only -l (list remote directory) or -g(get <filename> from remote directory).");
 			return false;
 		}
 
@@ -44,14 +42,12 @@ public class ftclient {
 			ipInfo = InetAddress.getLocalHost();
 			hostname = ipInfo.getHostName();
 			pSock.sendMsg(hostname);
-			System.out.println("Hostname = " + hostname);
 		} catch (UnknownHostException e) {
 			System.out.println("Failed connection: Unknown Client Host");
 			return false;
 		}
 		String input = pSock.receiveMsg();
 		if (input.equals("#")) {
-			System.out.println("Success " + input);
 			pSock.sendMsg("@");
 			return true;
 		} else {
@@ -62,10 +58,10 @@ public class ftclient {
 
 	public static boolean sendCommands(Sock pSock, String[] args) {
 		String cmd = "empty";
-		if(args.length == 4){
-			cmd = "2 "+args[2] +" "+args[3]; //Case command is -l
-		}else if(args.length == 5){
-			cmd = "3 " + args[2] +" "+args[3]+" " + args[4]; // Case Command is -g include filename
+		if (args.length == 4) {
+			cmd = "2 " + args[2] + " " + args[3]; //Case command is -l
+		} else if (args.length == 5) {
+			cmd = "3 " + args[2] + " " + args[3] + " " + args[4]; // Case Command is -g include filename
 		}
 		pSock.sendMsg(cmd);
 		return true;
@@ -73,13 +69,15 @@ public class ftclient {
 
 	public static boolean processList(Sock pSock, Sock qSock, String[] args) {
 		String buffer = pSock.receiveMsg();
-		System.out.println("Receiving Director structure from " + args[0] + ":" + args[3]);
-		if("ack".equals(buffer)){			// If server sends ok on plist it will send list on qSock
-			while(!"%%".equals(buffer)){
+		System.out.println("Receiving directory structure from " + args[0] + ":" + args[3]);
+		if ("ack".equals(buffer)) {			// If server sends ok on plist it will send list on qSock
+			while (!"%%".equals(buffer)) {
 				buffer = qSock.receiveMsg();
-				System.out.println(buffer);
+				if (!"%%".equals(buffer)) {
+					System.out.println(buffer);
+				}
 			}
-		}else{
+		} else {
 			System.out.println(buffer);//Else print error message sent by client
 			return false;
 		}
@@ -93,82 +91,79 @@ public class ftclient {
 		int fileCount = 1;
 		String buffer;
 		FileWriter fw = null;
+/**
+receiveMsg()
+	
 
-			buffer = pSock.receiveMsg();//Receive ack or recieve error
-			if("ack".equals(buffer)){			// If server sends ok on plist it will send list on qSock
-				buffer = pSock.receiveMsg();
-				filelines = Integer.parseInt(buffer);
-				System.out.println(buffer);
-			}else{
-				System.out.println(buffer);//Else print error message sent by client
-				System.exit(0);
+*/
+		buffer = pSock.receiveMsg();//Receive ack or receive error
+		if ("ack".equals(buffer)) {			// If server sends ok on plist it will send list on qSock
+			buffer = pSock.receiveMsg();
+			filelines = Integer.parseInt(buffer);
+		} else {
+			System.out.println(args[0] + ":" + args[4] + " says " + buffer); //Else print error message sent by client
+			System.exit(0);
+		}
+		try {
+			while (file.exists()) {
+				file  = new File(args[3] + fileCount);
+				fileCount++;
 			}
-		try{
-				while(file.exists()){
-						file  = new File(args[3]+fileCount);
-						fileCount++;
-					} 
-				file.createNewFile();
-				
-				fw = new FileWriter(file.getName(), true);
-
-			while(count < filelines){	
-				//System.out.println("Lines left = "+ filelines + " and count = " + count);//Else print error message sent by client
+			file.createNewFile();
+			fw = new FileWriter(file.getName(), true);
+			System.out.println("Receiving " + args[3] + " from " + args[0] + ":" + args[4]);
+			while (count < filelines) {
 				buffer = qSock.receiveMsg();
-				fw.write(buffer+"\n");
+				fw.write(buffer + "\n");
 				fw.flush();
-				System.out.println(buffer);//Else print error message sent by client
 				count++;
 			}
 			fw.close();
-		} catch(IOException e){
+		} catch (IOException e) {
 			System.out.println("File creation error.");
 		}
-
+		System.out.println("File transfer complete.");
 		return true;
 	}
 
-	public static boolean checkForQSocket(Sock pSock){
+	public static boolean checkForQSocket(Sock pSock) {
 		String	buffer = pSock.receiveMsg();
-		System.out.println("Waiting for qSock ready");//wait for socket startup from server
-		while(!"ack".equals(buffer)){			// If server sends ok on pSock it will send list on qSock
-			if("err".equals(buffer)){
+		while (!"ack".equals(buffer)) {			// If server sends ok on pSock it will send list on qSock
+			if ("err".equals(buffer)) {
 				return false;
 			}
 			buffer = pSock.receiveMsg();
-			System.out.println("Buffer = "+ buffer);
-		}	
+		}
 		return true;
 	}
-			
+
 	public static void main(String []args) {
 		Sock pSock = new Sock();
 		Sock qSock = new Sock();
 		Scanner reader = new Scanner(System.in);
 		String buffer = null;
 		if (args.length >= 4 && args.length <= 5) {
-			System.out.println("Args length = "+ args.length +".");
-			if (!verifyArgs(args)){
+			if (!verifyArgs(args)) {
 				System.exit(0);
 			}
 		} else {
-			System.out.println("Not enough arguments number of args = "+ args.length +".");
+			System.out.println("Not enough arguments number of args = " + args.length + ".");
 			System.exit(0);
 		}
-		pSock.createSocket(Integer.parseInt(args[1]),args[0]);
+		pSock.createSocket(Integer.parseInt(args[1]), args[0]);
 		handshake(pSock);
 		sendCommands(pSock, args);
-		if(checkForQSocket(pSock)){
+		if (checkForQSocket(pSock)) {
 
-			if(args.length == 5){
-					qSock.createSocket(Integer.parseInt(args[4]), args[0]); //Case -g dataPort is arg[4]
-			}else{
-					qSock.createSocket(Integer.parseInt(args[3]), args[0]);//Case -l dataPort is arg[3]
+			if (args.length == 5) {
+				qSock.createSocket(Integer.parseInt(args[4]), args[0]); //Case -g dataPort is arg[4]
+			} else {
+				qSock.createSocket(Integer.parseInt(args[3]), args[0]);//Case -l dataPort is arg[3]
 			}
-			if ("-l".equals(args[2])){
+			if ("-l".equals(args[2])) {
 				processList(pSock, qSock, args);
 			} else if ("-g".equals(args[2])) {
-				processFile(pSock,qSock, args);
+				processFile(pSock, qSock, args);
 			}
 		}
 		pSock.closeSocket();
@@ -214,12 +209,12 @@ class Sock {
 		}
 	}
 
-	void closeSocket(){
-		try{
-		this.socket.close();
-	} catch(IOException e){
-		e.printStackTrace();
-	}
+	void closeSocket() {
+		try {
+			this.socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 
 	}
