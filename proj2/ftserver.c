@@ -2,10 +2,9 @@
  * CS 372 Intro. to Computer Networks
  * Project 2
  * Name: Jacob Powers
- * Date: 07/29/18
- * Description: This is the client application for a chat application.
- * The server is started with the chatserve.py with a port number, you can then
- * run this program.
+ * Date: 08/10/18
+ * Description: This is the server for a file transfer utility. See readme for information on how to 
+ * compile and run.
  */
 
 #include <stdio.h>
@@ -75,9 +74,15 @@ int main(int argc, char *argv[]) {
 	printf("Socket Closed...Goodbye.\n");
 	return 0;
 }
-
+/* Function: receiveCommands
+* --------------------
+*  Receives commands from client and populates the clientInfo struct
+*
+* n: Communication socket file descriptos, struct to return client info(hostname, port number, filename, command), pointer to ack
+*
+* Returns: 0 or on success 
+*/
 int receiveCommands(int pSock, struct cmd* rtncmds) {
-
 	char buffer[500];
 	int numArgs = 0;
 	memset(buffer, 0, 500);
@@ -91,9 +96,15 @@ int receiveCommands(int pSock, struct cmd* rtncmds) {
 	}
 	return 0;
 }
-
+/* Function: processCommand
+* --------------------
+*  Determines given command and calls appropriate function handles error of unknown command
+*
+* n: Communication and data socket file descriptors, struct containing client info(hostname, port number, filename, command), pointer to ack
+*
+* Returns: 1 or on success 
+*/
 int processCommand(int pSock, int qSock, struct cmd* commands, char* ack) {
-
 	char* cmdError = "Invalid Command\n";
 	char* fileError = "File not found\n";
 	if (strcmp(commands->command, "-l") == 0) { // client sent -l send directory list
@@ -119,7 +130,14 @@ int processCommand(int pSock, int qSock, struct cmd* commands, char* ack) {
 	}
 
 }
-
+/* Function: sendFile
+* --------------------
+*  Sends requested file or error if file is not found
+*
+* n: Communication and data socket file descriptors, struct containing client info(hostname, port number, filename, command )
+*
+* Returns: 0 on success 
+*/
 int sendFile(int pSock, int qSock, struct cmd *commands) {
 	FILE* fp;
 	int filelines = 0;
@@ -144,7 +162,14 @@ int sendFile(int pSock, int qSock, struct cmd *commands) {
 	fclose(fp);
 	return 0;
 }
-
+/* Function: sendlist
+* --------------------
+*  Sends current directory list to client
+*
+* n: Communication socket file descriptor, struct containing client info(hostname, port number, filename, command )
+*
+* Returns: Void 
+*/
 void sendList(int qSock, struct cmd *commands) {
 	struct dirent *entry;;
 	char buffer[500];
@@ -163,7 +188,14 @@ void sendList(int qSock, struct cmd *commands) {
 	closedir(curDir);
 }
 
-/*Collects user name and sends first connection to server*/
+/* Function: handshake
+* --------------------
+*  Initiates contact with client
+*
+* n: Communication socket file descriptor, struct containing client info(hostname, port number, filename, command )
+*
+* Returns: -1 on failure 0 on success  
+*/
 int handshake(int socket, struct cmd* clientInfo) {
 	char response[500];
 	char* handshake = "#\n";
@@ -177,7 +209,14 @@ int handshake(int socket, struct cmd* clientInfo) {
 		return -1;
 	return 0;
 }
-
+/* Function: establishConnNew
+* --------------------
+*  Sets up sockets
+*
+* n: port number of socket to create, previous socket created for communication
+*
+* Returns: listen socket file descriptor 
+*/
 int establishConnNew(int portNumber, int previousSock) {
 	int listenSocketFD;
 	struct sockaddr_in serverAddress;
@@ -241,5 +280,3 @@ void nullTermStr(char* str) {
 	if (str[strlen(str) - 1] == '\n') //Strip new line from fgets
 		str[strlen(str) - 1] = '\0';
 }
-
-

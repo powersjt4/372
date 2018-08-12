@@ -1,16 +1,21 @@
-/**
- *
- */
+	/**
+	*	This is the client portion of a file transfer utility. 
+	*	By specifying arguments this program will connect to and issue commands to the server.
+	*	This client can request a directory listing or specific files from the directory where the 
+	*	server is being run.
+	**/
+
 import java.util.Scanner;
 import java.net.*;
 import java.io.*;
 
-
 public class ftclient {
-	/**
-		args[0] = server host , args[1] = server port number, args[2] = commands -l or -g,
-		args[3] = data port for -l or filename for -g, args[4] = data port for -g
-	**/
+	/*
+	*	Checks arguments from command line
+	* 	
+	*	args[0] = server host , args[1] = server port number, args[2] = commands -l or -g,
+	*	args[3] = data port for -l or filename for -g, args[4] = data port for -g 
+	*/	
 
 	public static boolean verifyArgs(String[] args) {
 		if (!("flip1").equals(args[0]) && !("flip2").equals(args[0]) && !("flip3").equals(args[0]) && !"localhost".equals(args[0]) ) {
@@ -35,6 +40,11 @@ public class ftclient {
 
 		return true;
 	}
+
+	/*
+	* Initiates contact with server
+	*/
+
 	public static boolean handshake(Sock pSock) {
 		String hostname;
 		InetAddress ipInfo;
@@ -55,7 +65,9 @@ public class ftclient {
 			return false;
 		}
 	}
-
+	/*
+	*	Sends command given as an argument. Different cases for -l or -g
+	*/
 	public static boolean sendCommands(Sock pSock, String[] args) {
 		String cmd = "empty";
 		if (args.length == 4) {
@@ -83,7 +95,12 @@ public class ftclient {
 		}
 		return true;
 	}
-
+	/*
+	*	processFile()
+	* Receives messages on the communications socket (pSock) and receives files on data socket (qSock)
+	* Creates a new file if file doesn't exist or appends an increasing values to the filename.
+	* Prints error sent from server if file cannot be found.
+	*/
 	public static boolean processFile(Sock pSock, Sock qSock, String[] args) {
 		File file = new File(args[3]);
 		int filelines  = 0;
@@ -91,11 +108,7 @@ public class ftclient {
 		int fileCount = 1;
 		String buffer;
 		FileWriter fw = null;
-/**
-receiveMsg()
-	
 
-*/
 		buffer = pSock.receiveMsg();//Receive ack or receive error
 		if ("ack".equals(buffer)) {			// If server sends ok on plist it will send list on qSock
 			buffer = pSock.receiveMsg();
@@ -125,7 +138,12 @@ receiveMsg()
 		System.out.println("File transfer complete.");
 		return true;
 	}
-
+	/*
+	*	checkForQSocket()
+	* 	Waits to see if server has created data socket (qSock)
+	*   If clients receives err then there was a problem creating the socket 
+	* 	and the client exits. 
+	*/
 	public static boolean checkForQSocket(Sock pSock) {
 		String	buffer = pSock.receiveMsg();
 		while (!"ack".equals(buffer)) {			// If server sends ok on pSock it will send list on qSock
@@ -170,7 +188,13 @@ receiveMsg()
 		qSock.closeSocket();
 	}
 }
-
+	/**
+	*	The sock class handles all of the socket commands.
+	*	createSocket(): Takes port number and hostname. Returns base socket with input and output.
+	*	sendMsg(): Takes a string and sends it to output of socket.
+	*	receiveMsg(): receives message from socket and outputs to console.
+	*	closeSocket(): Closes the socket.
+	**/
 class Sock {
 	Socket socket;
 	PrintWriter out;
